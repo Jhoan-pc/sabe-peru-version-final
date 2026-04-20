@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Carta | Sabe a Perú Oviedo</title>
+    <meta name="description"
+        content="Descubre la carta del restaurante Sabe a Perú en Oviedo. Prueba nuestros ceviches, tiraditos, lomo saltado, ají de gallina y nuestra barra de cócteles peruanos con Pisco.">
+    <meta name="keywords"
+        content="carta restaurante peruano, menu sabe a peru, ceviche oviedo, platos tipicos peruanos asturias">
+    <meta name="robots" content="index, follow">
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+
+<body class="page-carta">
+
+    <header id="main-header" class="scrolled">
+        <a href="index.html" class="logo-badge">
+            <div class="logo-top-row">
+                <div class="logo-line-top-left"></div>
+                <div class="logo-icon-container">
+                    <svg viewBox="0 0 60 50" width="50" height="40" class="chullo-icon-detailed">
+                        <!-- Rays Left -->
+                        <line x1="12" y1="18" x2="4" y2="18" stroke="white" stroke-width="2" stroke-linecap="round">
+                        </line>
+                        <line x1="14" y1="12" x2="8" y2="6" stroke="white" stroke-width="2" stroke-linecap="round">
+                        </line>
+                        <line x1="20" y1="8" x2="16" y2="2" stroke="white" stroke-width="2" stroke-linecap="round">
+                        </line>
+                        <!-- Rays Right -->
+                        <line x1="48" y1="18" x2="56" y2="18" stroke="white" stroke-width="2" stroke-linecap="round">
+                        </line>
+                        <line x1="46" y1="12" x2="52" y2="6" stroke="white" stroke-width="2" stroke-linecap="round">
+                        </line>
+                        <line x1="40" y1="8" x2="44" y2="2" stroke="white" stroke-width="2" stroke-linecap="round">
+                        </line>
+                        <!-- Chullo Body -->
+                        <path d="M22,20 C22,10 38,10 38,20 V35 L34,38 L30,35 V30 H30 V35 L26,38 L22,35 Z" fill="none"
+                            stroke="white" stroke-width="2.5" stroke-linejoin="round"></path>
+                        <!-- PomPom -->
+                        <line x1="30" y1="10" x2="30" y2="6" stroke="white" stroke-width="2"></line>
+                        <circle cx="30" cy="5" r="2" fill="white"></circle>
+                        <!-- Diamond -->
+                        <path d="M30,18 L34,24 L30,30 L26,24 Z" fill="none" stroke="white" stroke-width="2"></path>
+                        <circle cx="30" cy="24" r="1" fill="white"></circle>
+                        <!-- Earflap Crosses -->
+                        <line x1="22" y1="35" x2="22" y2="42" stroke="white" stroke-width="2"></line>
+                        <line x1="20" y1="39" x2="24" y2="39" stroke="white" stroke-width="2"></line>
+                        <line x1="38" y1="35" x2="38" y2="42" stroke="white" stroke-width="2"></line>
+                        <line x1="36" y1="39" x2="40" y2="39" stroke="white" stroke-width="2"></line>
+                    </svg>
+                </div>
+                <div class="logo-line-top-right"></div>
+            </div>
+            <div class="logo-text-row main">
+                <span class="logo-word red">SABE</span>
+                <span class="logo-word white-small">A</span>
+                <span class="logo-word red">PERÚ</span>
+            </div>
+            <div class="logo-sub-row">
+                <span class="line-red-short"></span>
+                <span class="logo-sub">bar & restaurant</span>
+                <span class="line-white-short"></span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a href="/#inicio" class="tab-link">Inicio</a>
+            <a href="/#experiencia" class="tab-link">Experiencia</a>
+            <a href="/carta.html" class="tab-link active">La Carta</a>
+            <a href="/#reserva" class="tab-link">Reservas</a>
+            <a href="/#contacto" class="tab-link">Contacto</a>
+        </nav>
+        <button class="mobile-menu-btn" id="mobile-menu-btn">
+            <span></span>
+            <span></span>
+        </button>
+        <div class="mobile-nav" id="mobile-nav">
+            <nav>
+                <a href="/#inicio">Inicio</a>
+                <a href="/#experiencia">Experiencia</a>
+                <a href="/carta.html" class="active">La Carta</a>
+                <a href="/#reserva">Reservas</a>
+                <a href="/#contacto">Contacto</a>
+            </nav>
+        </div>
+    </header>
+
+    <main style="padding-top: 100px;">
+        <!-- Digital Menu Section -->
+        <section class="menu-section">
+            <div class="section-container">
+
+                <h2 class="serif-title">Nuestra Carta</h2>
+
+                <div class="menu-filters">
+                    <button class="filter-btn active" data-category="comida">Comida</button>
+                    <button class="filter-btn" data-category="bebida">Bebidas</button>
+                    <button class="filter-btn" data-category="coctel">Cócteles</button>
+                </div>
+
+                <div id="menu-grid" class="menu-grid dynamic">
+                    <!-- Los platos se cargarán aquí dinámicamente -->
+                    <div class="loading-state">Preparando los sabores de hoy...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-info">
+                <h3 class="logo-small">Sabe a Perú</h3>
+                <p id="footer-address">C. Manuel Pedregal, 13, 33001 Oviedo, Asturias.</p>
+                <div class="social-links" style="flex-wrap: wrap; gap: 10px;">
+                    <a href="https://instagram.com/sabeaperu__" target="_blank" id="contact-insta">Instagram</a>
+                    <a href="https://www.facebook.com/share/18NpqUqAhn/?mibextid=wwXIfr" target="_blank" id="contact-fb">Facebook</a>
+                    <a href="https://www.tiktok.com/@sabe.a.peru1?_r=1&_t=ZN-9584peeHXFu" target="_blank" id="contact-tiktok">TikTok</a>
+                    <div style="display: flex; gap: 15px; width: 100%; margin-top: 5px;">
+                      <a href="tel:+34654728787" id="contact-phone" style="white-space: nowrap;">T. 654 72 87 87</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-hours">
+                <h4>HORARIO</h4>
+                <p><strong style="color: var(--color-gold);">BAR:</strong></p>
+                <p>Lunes a Viernes: <span id="hours-bar-1">12:00 pm - 12:00 am</span></p>
+                <p>Sábado: <span id="hours-bar-2">12:00 pm - 01:00 am</span></p>
+                <p>Domingo: <span id="hours-bar-3">12:00 pm - 10:00 pm</span></p>
+                <p><strong style="color: var(--color-gold); margin-top: 8px; display: inline-block;">COCINA:</strong></p>
+                <p>Lunes a Viernes: <span id="hours-kitchen-1">12:00 pm - 11:00 pm</span></p>
+                <p>Sábado: <span id="hours-kitchen-2">12:00 pm - 12:00 am</span></p>
+                <p>Domingo: <span id="hours-kitchen-3">12:00 pm - 10:00 pm</span></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 OVIEDO, ASTURIAS. HIGH PERUVIAN CUISINE.</p>
+        </div>
+    </footer>
+
+    <!-- PHOTO PREVIEW MODAL -->
+    <div id="menu-photo-modal" class="menu-modal">
+        <div class="menu-modal-content">
+            <button class="close-menu-modal">&times;</button>
+            <img src="" alt="" class="menu-modal-img">
+            <div class="menu-modal-info">
+                <h3 class="modal-item-name">Nombre del Plato</h3>
+                <p class="modal-item-desc">Descripción detallada</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

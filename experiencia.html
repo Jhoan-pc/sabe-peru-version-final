@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sabe a Perú - Su viaje por Perú comienza aquí</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/src/experiencia.css">
+    <meta name="description" content="Invitación exclusiva a la coctelería de autor de Sabe a Perú en Oviedo.">
+</head>
+
+<body>
+    <header class="header">
+        <a href="#" class="logo-badge"
+            style="text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top:20px;">
+            <svg viewBox="0 0 60 50" width="60" height="48" class="chullo-icon-detailed">
+                <line x1="12" y1="18" x2="4" y2="18" stroke="#d4af37" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="14" y1="12" x2="8" y2="6" stroke="#d4af37" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="20" y1="8" x2="16" y2="2" stroke="#d4af37" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="48" y1="18" x2="56" y2="18" stroke="#d4af37" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="46" y1="12" x2="52" y2="6" stroke="#d4af37" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="40" y1="8" x2="44" y2="2" stroke="#d4af37" stroke-width="2" stroke-linecap="round"></line>
+                <path d="M22,20 C22,10 38,10 38,20 V35 L34,38 L30,35 V30 H30 V35 L26,38 L22,35 Z" fill="none"
+                    stroke="#d4af37" stroke-width="2.5" stroke-linejoin="round"></path>
+                <line x1="30" y1="10" x2="30" y2="6" stroke="#d4af37" stroke-width="2"></line>
+                <circle cx="30" cy="5" r="2" fill="#d4af37"></circle>
+                <path d="M30,18 L34,24 L30,30 L26,24 Z" fill="none" stroke="#d4af37" stroke-width="2"></path>
+                <circle cx="30" cy="24" r="1" fill="#d4af37"></circle>
+                <line x1="22" y1="35" x2="22" y2="42" stroke="#d4af37" stroke-width="2"></line>
+                <line x1="20" y1="39" x2="24" y2="39" stroke="#d4af37" stroke-width="2"></line>
+                <line x1="38" y1="35" x2="38" y2="42" stroke="#d4af37" stroke-width="2"></line>
+                <line x1="36" y1="39" x2="40" y2="39" stroke="#d4af37" stroke-width="2"></line>
+            </svg>
+            <div
+                style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #d4af37; display: flex; align-items: center; gap: 6px; letter-spacing: 2px;">
+                <span>SABE</span>
+                <span style="font-size: 0.8em; font-weight: 400; font-family: 'Montserrat', sans-serif;">A</span>
+                <span>PERÚ</span>
+            </div>
+            <div
+                style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: #a9a9a9; letter-spacing: 3px; text-transform: uppercase; margin-top:2px;">
+                bar & restaurant
+            </div>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-btn">
+            <span></span>
+            <span></span>
+        </button>
+        <div class="mobile-nav" id="mobile-nav">
+            <nav style="display: flex; flex-direction: column; gap: 30px; text-align: center;">
+                <a href="/#inicio" style="color: white; text-decoration: none; font-family: 'Playfair Display', serif; font-size: 2rem;">Inicio</a>
+                <a href="/#experiencia" style="color: white; text-decoration: none; font-family: 'Playfair Display', serif; font-size: 2rem;">Experiencia</a>
+                <a href="/carta.html" style="color: white; text-decoration: none; font-family: 'Playfair Display', serif; font-size: 2rem;">La Carta</a>
+                <a href="/#reserva" style="color: white; text-decoration: none; font-family: 'Playfair Display', serif; font-size: 2rem;">Reservas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero fade-in">
+            <div id="exp-hero-bg" class="hero-bg"></div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span id="exp-hero-label"
+                    style="display: block; color: var(--gold); font-family: var(--font-body); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1rem;">Bienvenidos
+                    a</span>
+                <h1 id="exp-hero-title" class="hero-title" style="font-size: 3.5rem; margin-bottom: 1rem;">Sabe a Perú
+                </h1>
+                <p id="exp-hero-desc"
+                    style="color: white; font-size: 1.2rem; font-weight: 300; max-width: 80%; margin: 0 auto; line-height: 1.4;">
+                    Disfrute de un emblemático Pisco Sour de cortesía en nuestro local</p>
+            </div>
+        </section>
+
+        <section class="welcome-block scroll-anim">
+            <div class="container">
+                <h2 id="exp-welcome-title" class="section-title">Un honor recibirle en Oviedo</h2>
+                <div class="divider"></div>
+                <p id="exp-welcome-desc" class="welcome-text">
+                    Como huésped distinguido, le invitamos a descubrir nuestra Alquimia de Coctelería. Presente su
+                    tarjeta de cortesía al llegar y disfrute de nuestro aclamado Pisco Sour de bienvenida como inicio de
+                    su
+                    experiencia.
+                </p>
+            </div>
+        </section>
+
+        <section class="cocktail-gallery scroll-anim">
+            <div class="carousel-container">
+                <div class="carousel-track" id="carousel-track">
+                    <div class="carousel-slide">
+                        <img id="exp-gallery-1"
+                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/Cocteles.png?v=2"
+                            alt="Cóctel de Autor 1" style="object-fit: cover; border-radius: 12px;">
+                    </div>
+                    <div class="carousel-slide">
+                        <img id="exp-gallery-2"
+                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria3.png"
+                            alt="Cóctel de Autor 2" style="object-fit: cover; border-radius: 12px;">
+                    </div>
+                    <div class="carousel-slide">
+                        <img id="exp-gallery-3"
+                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria4.png"
+                            alt="Preparación Cóctel 3" style="object-fit: cover; border-radius: 12px;">
+                    </div>
+                    <div class="carousel-slide">
+                        <img id="exp-gallery-4"
+                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria7.png"
+                            alt="Experiencia 4" style="object-fit: cover; border-radius: 12px;">
+                    </div>
+                </div>
+                <button class="carousel-btn prev-btn" aria-label="Anterior">&#10094;</button>
+                <button class="carousel-btn next-btn" aria-label="Siguiente">&#10095;</button>
+                <div class="carousel-indicators" id="carousel-indicators"></div>
+            </div>
+        </section>
+
+        <section class="cta-section scroll-anim"
+            style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a id="exp-cta-btn-1" href="#reserva" class="btn-primary glow-btn">RESERVAR MESA CON CORTESÍA</a>
+            <a id="exp-cta-btn-2" href="carta.html" class="btn-primary dark-btn" target="_blank"
+                rel="noopener noreferrer">VER LA CARTA</a>
+        </section>
+
+        <!-- RESERVAS EN LA MISMA PÁGINA -->
+        <section id="reserva" class="booking-section scroll-anim"
+            style="padding: 2rem 1.5rem 6rem 1.5rem; background-color: var(--bg-color); text-align: center;">
+            <div class="booking-card"
+                style="max-width: 600px; margin: 0 auto; background: rgba(18,18,18,0.8); border: 1px solid var(--gold); padding: 2.5rem 1.5rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <h2 class="serif-title-large"
+                    style="font-family: var(--font-title); font-size: 2.2rem; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                    Asegure su experiencia.</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 1rem;">Garantice su mesa y su
+                    Pisco Sour de cortesía.</p>
+
+                <form id="reservation-form" class="modern-form"
+                    style="display: flex; flex-direction: column; gap: 1.2rem; text-align: left;">
+                    <div class="form-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <input type="text" name="name" placeholder="Su Nombre *" required
+                            style="flex: 1; min-width: 150px; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                        <input type="email" name="email" placeholder="Email *" required
+                            style="flex: 1; min-width: 150px; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                    </div>
+                    <div class="form-row" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.8rem; color: var(--gold); opacity: 0.7;">Fecha de visita *</label>
+                            <input type="date" name="date" required
+                                style="width: 100%; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; color-scheme: dark; font-family: var(--font-body); outline: none;">
+                        </div>
+                        <div id="time-slots-container" style="flex: 1; min-height: 50px; display: flex; align-items: flex-end;">
+                            <p style="font-size: 0.8rem; color: #777; font-style: italic; margin-bottom: 15px;">Elija fecha...</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div style="flex: 0.8; display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.8rem; color: var(--gold); opacity: 0.7;">Personas para la reserva *</label>
+                            <input type="number" name="people" placeholder="Ej: 2" min="1" max="20" required
+                                style="width: 100%; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                        </div>
+                        <div style="flex: 1.2; display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.8rem; color: var(--gold); opacity: 0.7;">Motivo (Opcional)</label>
+                            <input type="text" name="occasion" value="Cliente de Hotel" placeholder="Motivo"
+                                style="width: 100%; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary glow-btn"
+                        style="width: 100%; max-width: 100%; border: none; cursor: pointer; margin-top: 1rem;">SOLICITAR
+                        RESERVA</button>
+                    <div id="form-message" class="form-message"
+                        style="margin-top: 1rem; font-size: 1rem; color: var(--gold); text-align: center;"></div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <section id="contacto" class="footer-contact" style="background: #050505; padding-top: 50px;">
+          <iframe id="map-url"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2900.511639903508!2d-5.852673299999998!3d43.366324899999995!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd368d52cb5bfed3%3A0xb68d2c9440242b5c!2sSabe%20a%20Per%C3%BA%20Oviedo!5e0!3m2!1ses!2ses!4v1774907372591!5m2!1ses!2ses"
+            width="100%" height="400" style="border:0; filter: grayscale(1) invert(0.9);" allowfullscreen=""
+            loading="lazy"></iframe>
+    </section>
+
+    <footer class="footer" style="background: #0a0a0a; border-top: 1px solid rgba(212, 175, 55, 0.2); padding: 3rem 0;">
+        <div class="container" style="max-width: 1200px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; text-align: left;">
+            <div class="footer-info">
+                <h3 style="font-family: 'Playfair Display', serif; color: #d4af37; font-size: 1.5rem; margin-bottom: 15px;">Sabe a Perú</h3>
+                <p style="margin-bottom: 20px;">Calle Manuel Pedregal, 13, Oviedo, Asturias</p>
+                <div class="social-links" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <a href="https://instagram.com/sabeaperu__" target="_blank" style="color: white; text-decoration: none;">Instagram</a>
+                    <a href="https://www.facebook.com/share/18NpqUqAhn/?mibextid=wwXIfr" target="_blank" style="color: white; text-decoration: none;">Facebook</a>
+                    <a href="https://www.tiktok.com/@sabe.a.peru1?_r=1&_t=ZN-9584peeHXFu" target="_blank" style="color: white; text-decoration: none;">TikTok</a>
+                </div>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <a href="tel:+34662125650" style="color: #d4af37; text-decoration: none; font-weight: bold;">T. 662 12 56 50</a>
+                    <a href="tel:+34654728787" style="color: #d4af37; text-decoration: none; font-weight: bold;">T. 654 72 87 87</a>
+                </div>
+            </div>
+            <div class="footer-hours">
+                <h4 style="color: #d4af37; margin-bottom: 15px;">HORARIO</h4>
+                <p><strong>BAR:</strong> Lunes a Viernes: 12:00 pm - 12:00 am</p>
+                <p style="margin-top: 10px;"><strong>COCINA:</strong></p>
+                <p>Lunes a Viernes: 12:00 pm - 12:00 am</p>
+                <p>Sábado: 12:00 pm - 11:00 pm</p>
+                <p>Domingo: 12:00 pm - 10:00 pm</p>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 50px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; font-size: 0.8rem; opacity: 0.6;">
+            © 2026 OVIEDO, ASTURIAS. HIGH PERUVIAN CUISINE.
+        </div>
+    </footer>
+
+    <script type="module" src="/src/experiencia.ts"></script>
+</body>
+
+</html>

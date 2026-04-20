@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sabe a Perú | Alta Gastronomía Peruana en Oviedo</title>
+  <meta name="description"
+    content="Sabe a Perú es el restaurante referente de la alta gastronomía peruana en Oviedo. Descubre nuestros ceviches, carnes al wok y cócteles de autor en C. Manuel Pedregal.">
+  <meta name="keywords"
+    content="restaurante peruano oviedo, comida peruana oviedo, ceviche oviedo, sabe a peru oviedo, restaurante manuel pedregal, pisco sour asturias">
+  <meta name="author" content="Sabe a Perú">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Redes Sociales -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.sabeaperu.es/">
+  <meta property="og:title" content="Sabe a Perú | Alta Gastronomía Peruana en Oviedo">
+  <meta property="og:description"
+    content="Sabe a Perú es el restaurante referente de la alta gastronomía peruana en Oviedo. Descubre nuestra carta.">
+  <meta property="og:image"
+    content="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/Hero1.png">
+
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+
+<body>
+
+  <header id="main-header">
+    <a href="#" class="logo-badge">
+      <div class="logo-top-row">
+        <div class="logo-line-top-left"></div>
+        <div class="logo-icon-container">
+          <svg viewBox="0 0 60 50" width="50" height="40" class="chullo-icon-detailed">
+            <!-- Rays Left -->
+            <line x1="12" y1="18" x2="4" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="14" y1="12" x2="8" y2="6" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="20" y1="8" x2="16" y2="2" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+
+            <!-- Rays Right -->
+            <line x1="48" y1="18" x2="56" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="46" y1="12" x2="52" y2="6" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="40" y1="8" x2="44" y2="2" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+
+            <!-- Chullo Body (Arch shape) -->
+            <path d="M22,20 C22,10 38,10 38,20 V35 L34,38 L30,35 V30 H30 V35 L26,38 L22,35 Z" fill="none" stroke="white"
+              stroke-width="2.5" stroke-linejoin="round"></path>
+            <!-- PomPom or Top Cross -->
+            <line x1="30" y1="10" x2="30" y2="6" stroke="white" stroke-width="2"></line>
+            <circle cx="30" cy="5" r="2" fill="white"></circle>
+
+            <!-- Inner Diamond -->
+            <path d="M30,18 L34,24 L30,30 L26,24 Z" fill="none" stroke="white" stroke-width="2"></path>
+            <circle cx="30" cy="24" r="1" fill="white"></circle>
+
+            <!-- Earflap Crosses -->
+            <line x1="22" y1="35" x2="22" y2="42" stroke="white" stroke-width="2"></line>
+            <line x1="20" y1="39" x2="24" y2="39" stroke="white" stroke-width="2"></line>
+
+            <line x1="38" y1="35" x2="38" y2="42" stroke="white" stroke-width="2"></line>
+            <line x1="36" y1="39" x2="40" y2="39" stroke="white" stroke-width="2"></line>
+          </svg>
+        </div>
+        <div class="logo-line-top-right"></div>
+      </div>
+
+      <div class="logo-text-row main">
+        <span class="logo-word red">SABE</span>
+        <span class="logo-word white-small">A</span>
+        <span class="logo-word red">PERÚ</span>
+      </div>
+
+      <div class="logo-sub-row">
+        <span class="line-red-short"></span>
+        <span class="logo-sub">bar & restaurant</span>
+        <span class="line-white-short"></span>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="#inicio" class="tab-link active">Inicio</a>
+      <a href="#experiencia" class="tab-link">Experiencia</a>
+      <a href="carta.html" class="tab-link">La Carta</a>
+      <a href="#especialidades" class="tab-link">Especialidades</a>
+      <a href="#galeria" class="tab-link">Galería</a>
+      <a href="#reserva" class="tab-link">Reservas</a>
+    </nav>
+    <button class="mobile-menu-btn" id="mobile-menu-btn">
+      <span></span>
+      <span></span>
+    </button>
+    <div class="mobile-nav" id="mobile-nav">
+      <nav>
+        <a href="#inicio">Inicio</a>
+        <a href="#experiencia">Experiencia</a>
+        <a href="carta.html">La Carta</a>
+        <a href="#especialidades">Especialidades</a>
+        <a href="#galeria">Galería</a>
+        <a href="#reserva">Reservas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO (Estilo Los Montes de Galicia) -->
+    <section id="inicio" class="hero-premium">
+      <div class="hero-overlay"></div>
+      <div class="hero-slideshow">
+        <img id="img-hero-1"
+          src="/assets/Hero1.webp"
+          class="hero-slide active" alt="Sabe a Perú Ambiente 1">
+        <img id="img-hero-2"
+          src="/assets/hero2.webp"
+          class="hero-slide" alt="Sabe a Perú Ambiente 2">
+        <img id="img-hero-3"
+          src="/assets/hero3.webp"
+          class="hero-slide" alt="Sabe a Perú Platos">
+        <img id="img-hero-4"
+          src="/assets/hero4.webp"
+          class="hero-slide" alt="Sabe a Perú Detalle">
+      </div>
+      <div class="hero-content-center">
+        <span id="hero-label" class="label-white">Bienvenidos al Sabor</span>
+        <h1 id="hero-title" class="serif-title-xl">La mejor experiencia<br><span>Peruana de Oviedo.</span></h1>
+        <div class="hero-actions">
+          <a href="#reserva" class="btn-gold">Reservar Mesa</a>
+          <a href="carta.html" class="btn-outline-white">Ver la Carta</a>
+        </div>
+      </div>
+    </section>
+    <!-- FILOSOFÍA (Concepto Gastronómico) -->
+    <section id="experiencia" class="concept-section reveal">
+      <div class="section-container-narrow">
+        <div class="concept-grid">
+          <div class="concept-text">
+            <span class="label-gold">Nuestra Filosofía</span>
+            <h2 id="philosophy-title" class="serif-title">El compromiso con el sabor.</h2>
+            <p id="philo-text-1" class="premium-text">Creemos en la honestidad del plato. Por eso, combinamos los
+              mejores productos
+              locales con los ingredientes más auténticos traídos desde la raíz.</p>
+            <p id="philo-text-2" class="premium-text">Desde nuestro emblemático Ceviche, preparado al momento, hasta la
+              calidez de un Lomo
+              Saltado con el punto exacto de fuego, cada bocado es una promesa cumplida: aquí, realmente sabe a Perú.
+            </p>
+          </div>
+          <div class="concept-image">
+            <img id="img-philosophy"
+              src="/assets/Ceviche.webp"
+              alt="Plato de autor Sabe a Perú">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESPECIALIDADES (Gateways) -->
+    <section id="especialidades" class="specialties-section reveal">
+      <div class="specialty-block">
+        <div class="spec-content">
+          <span class="label">Del Mar</span>
+          <h3>Inspiración Marina</h3>
+          <p>En Perú, el mar no es solo un paisaje, es nuestra mayor inspiración. En Sabe a Perú, honramos esa herencia
+            seleccionando lo mejor de la pesca para transformarla en bocados de pura frescura. Nuestra Leche de Tigre es
+            el alma de la casa: un equilibrio vibrante entre la acidez del limón, el aroma del cilantro y el carácter
+            del ají limo. Desde el frescor cítrico de nuestro Ceviche Clásico hasta la elegancia de un Tiradito, cada
+            plato es una explosión de vida que te transporta directamente a las costas peruanas. Frescura, técnica y
+            alma marina en cada bocado.</p>
+          <a href="carta.html?tag=pescado" class="link-underline">Explorar Pescados</a>
+        </div>
+        <div class="spec-img">
+          <img id="img-spec-1"
+            src="/assets/Mariscos.webp"
+            alt="Pescados">
+        </div>
+      </div>
+      <div class="specialty-block reverse">
+        <div class="spec-img">
+          <img id="img-spec-2"
+            src="/assets/LomoSalteado.webp"
+            alt="Carnes">
+        </div>
+        <div class="spec-content">
+          <span class="label">De la Tierra</span>
+          <h3>Carnes al Wok</h3>
+          <p>El ahumado perfecto. Cortes seleccionados flambeados a temperaturas extremas para sellar el sabor del Perú.
+          </p>
+          <a href="carta.html?tag=carne" class="link-underline">Ver las Carnes</a>
+        </div>
+      </div>
+      <div class="specialty-block">
+        <div class="spec-content">
+          <span class="label">Bar de Autor</span>
+          <h3>Pisco & Coctelería</h3>
+          <p>Nuestra barra es el corazón social del restaurante. Pisco Sour clásico y creaciones de vanguardia.</p>
+          <a href="carta.html?cat=coctel" class="link-underline">Ver la Barra</a>
+        </div>
+        <div class="spec-img">
+          <img id="img-spec-3"
+            src="/assets/Cocteles.webp"
+            alt="Cócteles">
+        </div>
+      </div>
+    </section>
+
+    <!-- GALERÍA (Grid Layout Restored) -->
+    <section id="galeria" class="gallery-section reveal">
+      <div class="section-container">
+        <div class="gallery-header">
+          <div>
+            <span class="label-gold">Visual</span>
+            <h2 class="serif-title">Nuestra Esencia</h2>
+          </div>
+          <div class="gallery-arrows">
+            <button id="gallery-prev" class="gallery-arrow" aria-label="Previous image">←</button>
+            <button id="gallery-next" class="gallery-arrow" aria-label="Next image">→</button>
+          </div>
+        </div>
+        <div class="gallery-grid" id="main-gallery-grid">
+          <div class="gallery-item tall">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/Galeria1.png"
+              alt="Ambiente Sabe a Perú">
+          </div>
+
+          <div class="gallery-item">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria3.png"
+              alt="Cóctel">
+          </div>
+          <div class="gallery-item wide">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria4.png"
+              alt="Preparación">
+          </div>
+          <div class="gallery-item">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria5.png"
+              alt="Postre">
+          </div>
+          <div class="gallery-item">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria6.png"
+              alt="Galería 6">
+          </div>
+          <div class="gallery-item">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria7.png"
+              alt="Galería 7">
+          </div>
+          <div class="gallery-item">
+            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria8.png"
+              alt="Galería 8">
+          </div>
+          <div class="gallery-item">
+            <img
+              src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria10.png"
+              alt="Galería 10">
+          </div>
+          <div class="gallery-item">
+            <img
+              src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria11.png"
+              alt="Galería 11">
+          </div>
+          <div class="gallery-item">
+            <img
+              src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria12.png"
+              alt="Galería 12">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECONOCIMIENTOS (Awards Style) -->
+    <section class="awards-section reveal">
+      <div class="awards-grid">
+        <div class="award-item">
+          <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chef-hat.svg" alt="Award 1"
+            style="filter: invert(0.6);">
+          <p>Auténtica Gastronomía Peruana</p>
+        </div>
+        <div class="award-item" style="display: flex; flex-direction: column; align-items: center;">
+          <div style="display: flex; gap: 4px; margin-bottom: 12px; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#d4af37"
+              stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+              </polygon>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#d4af37"
+              stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+              </polygon>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#d4af37"
+              stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+              </polygon>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#d4af37"
+              stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+              </polygon>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="url(#half_grad)"
+              stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <defs>
+                <linearGradient id="half_grad">
+                  <stop offset="50%" stop-color="#d4af37" />
+                  <stop offset="50%" stop-color="transparent" stop-opacity="1" />
+                </linearGradient>
+              </defs>
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+              </polygon>
+            </svg>
+          </div>
+          <p><span
+              style="font-weight: 800; color: #333; font-size: 1.25em; letter-spacing: 0; display: inline-block; margin-right: 5px;">4.8
+              / 5</span> Reseñas de Google</p>
+        </div>
+        <div class="award-item">
+          <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/heart.svg" alt="Award 3"
+            style="filter: invert(0.6);">
+          <p>Excelencia en Servicio</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESERVAS (Estilo Impactante) -->
+    <section id="reserva" class="booking-section reveal">
+      <div class="booking-card">
+        <h2 class="serif-title-large">Prepare sus sentidos.</h2>
+        <p>Asegure su mesa para una experiencia única en Manuel Pedregal.</p>
+
+        <form id="reservation-form" class="modern-form">
+          <div class="form-row">
+            <input type="text" name="name" placeholder="Su Nombre *" required>
+            <input type="email" name="email" placeholder="Email *" required>
+          </div>
+          <div class="form-row" style="display: flex; gap: 15px; align-items: flex-end;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 0.8rem; color: var(--color-gold); opacity: 0.8;">Fecha de reserva *</label>
+              <input type="date" name="date" required>
+            </div>
+            <!-- Dynamic Time Slots moved here -->
+            <div id="time-slots-container" style="flex: 1; min-height: 50px; display: flex; align-items: flex-end;">
+              <p style="font-size: 0.8rem; color: #777; font-style: italic; margin-bottom: 10px;">Elija fecha...</p>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 0.8rem; color: var(--color-gold); opacity: 0.8;">Personas para la reserva *</label>
+              <input type="number" name="people" placeholder="Ej: 2" min="1" max="20" required>
+            </div>
+            <div style="flex: 1.5; display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 0.8rem; color: var(--color-gold); opacity: 0.8;">Motivo especial (Opcional)</label>
+              <input type="text" name="occasion" placeholder="Compleaños, aniversario, empresa...">
+            </div>
+          </div>
+          <button type="submit" class="btn-gold-fill">Solicitar Reserva</button>
+          <div id="form-message" class="form-message"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- CONTACTO & MAPA -->
+    <section id="contacto" class="footer-contact">
+      <div class="map-full">
+        <iframe id="map-url"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2900.511639903508!2d-5.852673299999998!3d43.366324899999995!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd368d52cb5bfed3%3A0xb68d2c9440242b5c!2sSabe%20a%20Per%C3%BA%20Oviedo!5e0!3m2!1ses!2ses!4v1774907372591!5m2!1ses!2ses"
+          width="100%" height="400" style="border:0; filter: grayscale(1) invert(0.9);" allowfullscreen=""
+          loading="lazy"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-info">
+        <a href="#" class="logo-badge" style="align-items: flex-start;">
+          <div class="logo-top-row" style="justify-content: flex-start; width: auto;">
+            <div class="logo-icon-container">
+              <svg viewBox="0 0 60 50" width="50" height="40" class="chullo-icon-detailed">
+                <!-- Rays Left -->
+                <line x1="12" y1="18" x2="4" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="14" y1="12" x2="8" y2="6" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="20" y1="8" x2="16" y2="2" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+
+                <!-- Rays Right -->
+                <line x1="48" y1="18" x2="56" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="46" y1="12" x2="52" y2="6" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+                <line x1="40" y1="8" x2="44" y2="2" stroke="white" stroke-width="2" stroke-linecap="round"></line>
+
+                <!-- Chullo Body (Arch shape) -->
+                <path d="M22,20 C22,10 38,10 38,20 V35 L34,38 L30,35 V30 H30 V35 L26,38 L22,35 Z" fill="none"
+                  stroke="white" stroke-width="2.5" stroke-linejoin="round"></path>
+                <!-- PomPom or Top Cross -->
+                <line x1="30" y1="10" x2="30" y2="6" stroke="white" stroke-width="2"></line>
+                <circle cx="30" cy="5" r="2" fill="white"></circle>
+
+                <!-- Inner Diamond -->
+                <path d="M30,18 L34,24 L30,30 L26,24 Z" fill="none" stroke="white" stroke-width="2"></path>
+                <circle cx="30" cy="24" r="1" fill="white"></circle>
+
+                <!-- Earflap Crosses -->
+                <line x1="22" y1="35" x2="22" y2="42" stroke="white" stroke-width="2"></line>
+                <line x1="20" y1="39" x2="24" y2="39" stroke="white" stroke-width="2"></line>
+
+                <line x1="38" y1="35" x2="38" y2="42" stroke="white" stroke-width="2"></line>
+                <line x1="36" y1="39" x2="40" y2="39" stroke="white" stroke-width="2"></line>
+              </svg>
+            </div>
+          </div>
+          <div class="logo-text-row main" style="font-size: 1.5rem;">
+            <span class="logo-word red">SABE</span>
+            <span class="logo-word white-small">A</span>
+            <span class="logo-word red">PERÚ</span>
+          </div>
+          <div class="logo-sub-row" style="justify-content: flex-start;">
+            <span class="line-red-short" style="max-width:30px;"></span>
+            <span class="logo-sub">bar & restaurant</span>
+            <span class="line-white-short" style="max-width:30px;"></span>
+          </div>
+        </a>
+        <p style="margin-top:20px;" id="footer-address">C. Manuel Pedregal, 13, 33001 Oviedo, Asturias.</p>
+        <div class="social-links" style="flex-wrap: wrap; gap: 10px;">
+          <a href="https://instagram.com/sabeaperu__" target="_blank" id="contact-insta">Instagram</a>
+          <a href="https://www.facebook.com/share/18NpqUqAhn/?mibextid=wwXIfr" target="_blank" id="contact-fb">Facebook</a>
+          <a href="https://www.tiktok.com/@sabe.a.peru1?_r=1&_t=ZN-9584peeHXFu" target="_blank" id="contact-tiktok">TikTok</a>
+          <div style="display: flex; gap: 15px; width: 100%; margin-top: 5px;">
+            <a href="tel:+34654728787" id="contact-phone" style="white-space: nowrap;">T. 654 72 87 87</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-hours">
+        <h4>HORARIO</h4>
+        <p><strong style="color: var(--color-gold);">BAR:</strong></p>
+        <p>Lunes a Viernes: <span id="hours-bar-1">12:00 pm - 12:00 am</span></p>
+        <p>Sábado: <span id="hours-bar-2">12:00 pm - 01:00 am</span></p>
+        <p>Domingo: <span id="hours-bar-3">12:00 pm - 10:00 pm</span></p>
+        <p><strong style="color: var(--color-gold); margin-top: 8px; display: inline-block;">COCINA:</strong></p>
+        <p>Lunes a Viernes: <span id="hours-kitchen-1">12:00 pm - 11:00 pm</span></p>
+        <p>Sábado: <span id="hours-kitchen-2">12:00 pm - 12:00 am</span></p>
+        <p>Domingo: <span id="hours-kitchen-3">12:00 pm - 10:00 pm</span></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 OVIEDO, ASTURIAS. HIGH PERUVIAN CUISINE.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

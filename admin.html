@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabe a Perú | Panel de Administración</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <script type="module" src="/src/admin.ts"></script>
+    <style>
+        /* Estilos específicos para el Admin Panel */
+        body.admin-body {
+            background-color: #f4f4f4;
+            color: #333;
+            font-family: var(--font-sans);
+        }
+
+        .admin-header {
+            background-color: #1a1a1a;
+            color: var(--color-gold);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .admin-nav button {
+            background: transparent;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 5px 10px;
+            transition: 0.3s;
+        }
+
+        .admin-nav button.active {
+            color: var(--color-gold);
+            border-bottom: 2px solid var(--color-gold);
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #1a1a1a;
+        }
+
+        .login-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h2 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #1a1a1a;
+        }
+
+        /* Dashboard Content */
+        .dashboard-view {
+            display: none;
+        }
+
+        .dashboard-view.active {
+            display: block;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        /* Tabla de Items */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .items-table th {
+            background-color: var(--color-gold);
+            color: white;
+            font-weight: 600;
+        }
+
+        .items-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .btn-edit {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Modal */
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            /* IMPORTANTE: Permite hacer scroll si el contenido es grande */
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            /* Reducido del 10% al 5% para que aproveche mejor la pantalla */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        /* Toasts & Animations */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            margin-top: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid var(--color-gold);
+        }
+
+        .toast.success {
+            border-left-color: #4CAF50;
+        }
+
+        .toast.error {
+            border-left-color: #f44336;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Home Editor Styles */
+        .content-group {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .content-group h3 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: var(--color-gold);
+        }
+
+        .dashboard-view {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: black;
+        }
+    </style>
+</head>
+
+<body class="admin-body">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-box">
+            <h2>Acceso Administrativo</h2>
+            <form id="login-form">
+                <div class="form-row" style="display:flex; flex-direction:column; gap:10px;">
+                    <input type="email" id="login-email" placeholder="Email" required
+                        style="padding:10px; border:1px solid #ddd; width:100%;">
+                    <input type="password" id="login-password" placeholder="Contraseña" required
+                        style="padding:10px; border:1px solid #ddd; width:100%;">
+                    <button type="submit" class="btn-gold-fill" style="width:100%;">Ingresar</button>
+                    <div id="login-message" style="margin-top:10px; color:red; text-align:center;"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SCREEN -->
+    <div id="dashboard-screen" style="display:none;">
+        <header class="admin-header">
+            <h3>Sabe a Perú Admin</h3>
+            <div class="admin-nav">
+                <button class="nav-btn active" data-target="menu-view">Gestión Menú</button>
+                <button class="nav-btn" data-target="home-view">Página Principal</button>
+                <button class="nav-btn" data-target="gallery-view">Galería</button>
+                <button class="nav-btn" data-target="reservations-view">Reservas</button>
+                <button class="nav-btn" data-target="experiencia-view">Experiencia</button>
+                <button id="logout-btn" style="color:#f44336;">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <!-- VISTA MENÚ -->
+            <div id="menu-view" class="dashboard-view active">
+                <div class="action-bar">
+                    <h2>Gestión de Platos</h2>
+                    <button id="add-item-btn" class="btn-gold-fill">+ Nuevo Plato</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="search-input" placeholder="Buscar plato..."
+                        style="padding:10px; width:300px;">
+                    <select id="filter-category" style="padding:10px;">
+                        <option value="all">Todas las Categorías</option>
+                        <option value="comida">Comida</option>
+                        <option value="bebida">Bebidas</option>
+                        <option value="coctel">Cócteles</option>
+                    </select>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Precio</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menu-table-body">
+                            <!-- Items dinámicos -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VISTA PÁGINA PRINCIPAL -->
+            <div id="home-view" class="dashboard-view">
+                <h2>Editar Contenido de Inicio</h2>
+                <form id="home-content-form">
+                    <div class="content-group">
+                        <h3>Tipografía Base</h3>
+                        <label>Fuente de Títulos (Elegante)
+                            <select data-key="font_title" style="width:100%; padding:10px; margin: 10px 0;">
+                                <option value="'Playfair Display', serif">Playfair Display (Por defecto)</option>
+                                <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+                                <option value="'Cinzel', serif">Cinzel</option>
+                                <option value="'DM Serif Display', serif">DM Serif Display</option>
+                            </select>
+                        </label>
+                        <label>Fuente de Textos (Legible)
+                            <select data-key="font_text" style="width:100%; padding:10px; margin: 10px 0;">
+                                <option value="'Inter', sans-serif">Inter (Por defecto)</option>
+                                <option value="'Lato', sans-serif">Lato</option>
+                                <option value="'Montserrat', sans-serif">Montserrat</option>
+                                <option value="'Open Sans', sans-serif">Open Sans</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Header & Hero</h3>
+                        <label>Etiqueta Bienvenida
+                            <input type="text" data-key="hero_label"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Título Hero (Soporta HTML)
+                            <textarea data-key="hero_title" rows="2"
+                                style="width:100%; padding:10px; margin: 10px 0;"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Nuestra Filosofía</h3>
+                        <label>Título Sección
+                            <input type="text" data-key="philosophy_title"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Párrafo 1
+                            <textarea data-key="philosophy_text_1" rows="3"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;"></textarea>
+                        </label>
+                        <label>Párrafo 2
+                            <textarea data-key="philosophy_text_2" rows="3"
+                                style="width:100%; padding:10px; margin: 10px 0;"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Imágenes de la Página Principal</h3>
+                        <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Si seleccionas una imagen nueva,
+                            reemplazará a la actual.</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <label>Hero 1 (Principal)
+                                <img id="preview-img-hero-1" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_hero_1" style="width:100%;">
+                            </label>
+                            <label>Hero 2
+                                <img id="preview-img-hero-2" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_hero_2" style="width:100%;">
+                            </label>
+                            <label>Hero 3
+                                <img id="preview-img-hero-3" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_hero_3" style="width:100%;">
+                            </label>
+                            <label>Hero 4
+                                <img id="preview-img-hero-4" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_hero_4" style="width:100%;">
+                            </label>
+                            <label>Filosofía (Imagen central)
+                                <img id="preview-img-philosophy" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_philosophy" style="width:100%;">
+                            </label>
+                            <label>Especialidad 1 (Mar)
+                                <img id="preview-img-spec-1" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_spec_1" style="width:100%;">
+                            </label>
+                            <label>Especialidad 2 (Tierra)
+                                <img id="preview-img-spec-2" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_spec_2" style="width:100%;">
+                            </label>
+                            <label>Especialidad 3 (Cócteles)
+                                <img id="preview-img-spec-3" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="img_spec_3" style="width:100%;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Datos de Contacto e Información</h3>
+                        <label>WhatsApp para Reservas / Contacto (Ej: 34654728787)
+                            <input type="text" data-key="contact_whatsapp"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>URL de Instagram (Ej: https://instagram.com/sabeaperu__)
+                            <input type="text" data-key="contact_insta"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>URL de Facebook (Ej: https://facebook.com/sabeaperu)
+                            <input type="text" data-key="contact_fb"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>URL de TikTok (Ej: https://tiktok.com/@sabeaperu)
+                            <input type="text" data-key="contact_tiktok"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Dirección
+                            <textarea data-key="footer_address" rows="2"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;"></textarea>
+                        </label>
+                        <label>Horario Bar (Lun-Vier o General)
+                            <input type="text" data-key="hours_bar_1"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Horario Bar (Sábado)
+                            <input type="text" data-key="hours_bar_2"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Horario Bar (Domingo)
+                            <input type="text" data-key="hours_bar_3"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Horario Cocina (Lun-Vier o General)
+                            <input type="text" data-key="hours_kitchen_1"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Horario Cocina (Sábado)
+                            <input type="text" data-key="hours_kitchen_2"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Horario Cocina (Domingo)
+                            <input type="text" data-key="hours_kitchen_3"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Enlace Google Maps (Src del Iframe)
+                            <textarea data-key="map_url" rows="3"
+                                style="width:100%; padding:10px; margin: 10px 0;"></textarea>
+                        </label>
+                    </div>
+
+                    <div style="text-align: right; margin-bottom: 50px;">
+                        <button type="submit" class="btn-gold-fill" style="padding: 15px 40px;">Guardar Todos los
+                            Cambios</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- VISTA PÁGINA EXPERIENCIA -->
+            <div id="experiencia-view" class="dashboard-view">
+                <h2>Editar Contenido Experiencia</h2>
+                <form id="experiencia-content-form">
+                    <div class="content-group">
+                        <h3>Header & Hero</h3>
+                        <label>Imagen Fondo Hero
+                            <img id="preview-exp-hero-bg" src=""
+                                style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                            <input type="file" accept="image/*" data-image-key="exp_hero_bg"
+                                style="width:100%; margin-bottom: 20px;">
+                        </label>
+                        <label>Etiqueta Bienvenida
+                            <input type="text" data-key="exp_hero_label"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Título Hero (Soporta HTML)
+                            <textarea data-key="exp_hero_title" rows="2"
+                                style="width:100%; padding:10px; margin: 10px 0;"></textarea>
+                        </label>
+                        <label>Descripción Hero
+                            <textarea data-key="exp_hero_desc" rows="2"
+                                style="width:100%; padding:10px; margin: 10px 0;"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Bloque de Bienvenida</h3>
+                        <label>Título Bienvenida
+                            <input type="text" data-key="exp_welcome_title"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Texto Bienvenida
+                            <textarea data-key="exp_welcome_desc" rows="3"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Llamados a la Acción (Botones)</h3>
+                        <label>Texto Botón 1
+                            <input type="text" data-key="exp_cta_btn_1"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                        <label>Texto Botón 2
+                            <input type="text" data-key="exp_cta_btn_2"
+                                style="width:100%; padding:10px; margin: 10px 0 20px;">
+                        </label>
+                    </div>
+
+                    <div class="content-group">
+                        <h3>Imágenes de Galería Carrusel</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <label>Imagen 1
+                                <img id="preview-exp-gallery-1" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="exp_gallery_1" style="width:100%;">
+                            </label>
+                            <label>Imagen 2
+                                <img id="preview-exp-gallery-2" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="exp_gallery_2" style="width:100%;">
+                            </label>
+                            <label>Imagen 3
+                                <img id="preview-exp-gallery-3" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="exp_gallery_3" style="width:100%;">
+                            </label>
+                            <label>Imagen 4
+                                <img id="preview-exp-gallery-4" src=""
+                                    style="width:100%; height:120px; object-fit:cover; border-radius:4px; margin-bottom:5px; display:none;">
+                                <input type="file" accept="image/*" data-image-key="exp_gallery_4" style="width:100%;">
+                            </label>
+                        </div>
+                    </div>
+                    <div style="text-align: right; margin-bottom: 50px;">
+                        <button type="submit" class="btn-gold-fill" style="padding: 15px 40px;">Guardar Cambios
+                            Experiencia</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- VISTA GALERÍA -->
+            <div id="gallery-view" class="dashboard-view">
+                <div class="action-bar">
+                    <h2>Gestión de Galería</h2>
+                    <div>
+                        <input type="file" id="gallery-upload-input" accept="image/*,video/mp4" style="display:none;"
+                            multiple>
+                        <button id="add-gallery-btn" class="btn-gold-fill"
+                            onclick="document.getElementById('gallery-upload-input').click()">+ Subir Imágenes</button>
+                    </div>
+                </div>
+                <div id="gallery-admin-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 50px;">
+                    <!-- Gallery items will appear here -->
+                </div>
+            </div>
+
+            <!-- VISTA RESERVAS (Básico) -->
+            <div id="reservations-view" class="dashboard-view">
+                <h2>Reservas Recientes</h2>
+                <div style="overflow-x:auto;">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Cliente</th>
+                                <th>Pax</th>
+                                <th>Contacto</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-table-body">
+                            <!-- Reservas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA AGREGAR/EDITAR -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title">Agregar Plato</h2>
+            <form id="item-form" style="display:flex; flex-direction:column; gap:15px;">
+                <input type="hidden" id="item-id">
+
+                <label>Nombre
+                    <input type="text" id="item-name" required style="width:100%; padding:8px;">
+                </label>
+
+                <label>Descripción
+                    <textarea id="item-desc" rows="3" style="width:100%; padding:8px;"></textarea>
+                </label>
+
+                <div style="display:flex; gap:10px;">
+                    <label style="flex:1;">Precio (S/.)
+                        <input type="number" step="0.01" id="item-price" required style="width:100%; padding:8px;">
+                    </label>
+                    <label style="flex:1;">Subcategoría
+                        <input type="text" id="item-sub" placeholder="Ej: Entradas" style="width:100%; padding:8px;">
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <label style="flex:1;">Categoría Principal
+                        <select id="item-category" required style="width:100%; padding:8px;">
+                            <option value="comida">Comida</option>
+                            <option value="bebida">Bebida</option>
+                            <option value="coctel">Cóctel</option>
+                        </select>
+                    </label>
+                    <label style="flex:1;">Orden
+                        <input type="number" id="item-order" value="0" style="width:100%; padding:8px;">
+                    </label>
+                </div>
+
+                <label>Etiquetas (picante, pescado, marisco, carne, pollo, gluten-free)
+                    <input type="text" id="item-tags" style="width:100%; padding:8px;" placeholder="Separadas por comas">
+                </label>
+
+                <label>URL de la Imagen (Opcional)
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="text" id="item-image-url" style="flex:1; padding:8px;" placeholder="https://ejemplo.com/plato.jpg">
+                        <label class="btn-gold-fill" style="padding:8px 15px; margin:0; font-size:0.8rem; cursor:pointer; display:inline-block; text-align:center;">
+                            Subir Foto
+                            <input type="file" id="item-image-file" accept="image/*" style="display:none;">
+                        </label>
+                    </div>
+                    <small id="upload-status" style="opacity:0.7; font-size:0.8rem; display:block; margin-top:5px;">Deja vacío si no tiene foto.</small>
+                </label>
+
+                <label style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" id="item-available" checked> Disponible
+                </label>
+
+                <button type="submit" class="btn-gold-fill" style="margin-top:10px;">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+</body>
+
+</html>
