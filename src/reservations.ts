@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-
+import { db } from './firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 export interface ReservationSlot {
     time: string;
     available: boolean;
@@ -38,19 +38,21 @@ export async function getAvailableSlots(dateStr: string): Promise<ReservationSlo
 
     // Fetch existing reservations for this date
     try {
-        const { data, error } = await supabase
-            .from('reservations')
-            .select('reservation_time')
-            .eq('reservation_date', dateStr)
-            .neq('status', 'cancelled');
-
-        if (error) throw error;
+        const q = query(
+            collection(db, 'reservations'),
+            where('reservation_date', '==', dateStr),
+            where('status', '!=', 'cancelled')
+        );
+        const qs = await getDocs(q);
 
         // Count reservations per slot
         const counts: Record<string, number> = {};
-        data?.forEach(r => {
-            const time = r.reservation_time.substring(0, 5); // Ensure HH:MM format
-            counts[time] = (counts[time] || 0) + 1;
+        qs.docs.forEach(docSnap => {
+            const r = docSnap.data();
+            if (r.reservation_time) {
+                const time = r.reservation_time.substring(0, 5); // Ensure HH:MM format
+                counts[time] = (counts[time] || 0) + 1;
+            }
         });
 
         // Map to slots with availability

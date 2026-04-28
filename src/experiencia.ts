@@ -1,10 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { db } from './firebase';
+import { collection, query, getDocs, addDoc } from 'firebase/firestore';
 import { initReservationUI } from './reservations';
 
-// Initialize Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Supabase removido
 
 // Carousel and Animation Logic
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,8 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // If the content is empty or doesn't exist, it keeps the default hardcoded HTML.
     async function initDynamicContent() {
         try {
-            const { data, error } = await supabase.from('site_content').select('*').like('key', 'exp_%');
-            if (error) throw error;
+            const qs = await getDocs(query(collection(db, 'site_content')));
+            const data = qs.docs.map(doc => doc.data()).filter((item: any) => item.key && item.key.startsWith('exp_'));
 
             data?.forEach(item => {
                 siteCache[item.key] = item.content;
@@ -178,11 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                const { error } = await supabase
-                    .from('reservations')
-                    .insert([reservationForDb]);
-
-                if (error) throw error;
+                await addDoc(collection(db, 'reservations'), reservationForDb);
 
                 // WhatsApp Integration
                 const restaurantPhone = siteCache['contact_whatsapp'] || "34662125650";

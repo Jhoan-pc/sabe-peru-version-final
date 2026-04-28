@@ -1,15 +1,8 @@
 
-import { createClient } from '@supabase/supabase-js';
-
-// Configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase credentials missing!');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { db, auth, storage } from './firebase';
+import { collection, query, getDocs, addDoc, updateDoc, doc, deleteDoc, setDoc, orderBy } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 
 let currentMode = 'create'; // or 'edit'
 let currentItemId: string | null = null;
@@ -54,13 +47,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 
     // Check session
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (session) {
-        showDashboard();
-    } else {
-        loginScreen.style.display = 'flex';
-    }
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            showDashboard();
+        } else {
+            loginScreen.style.display = 'flex';
+        }
+    });
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -70,10 +63,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setLoading(submitBtn, true, 'Verificando');
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password
-        });
+        let error: any = null;
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch(err) {
+            error = err;
+        }
 
         setLoading(submitBtn, false, 'Ingresar');
 
@@ -87,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     logoutBtn.addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await signOut(auth);
         window.location.reload();
     });
 
@@ -137,11 +132,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadMenu() {
         menuTableBody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
 
-        const { data, error } = await supabase
-            .from('menu_items')
-            .select('*')
-            .order('sort_order', { ascending: true })
-            .order('created_at', { ascending: false });
+        let data: any[] = [];
+        let error: any = null;
+        try {
+            const qs = await getDocs(query(collection(db, 'menu_items'), orderBy('created_at', 'desc')));
+            data = qs.docs.map(d => ({id: d.id, ...d.data()}));
+            data.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
+        } catch(err) { error = err; }
 
         if (error) {
             console.error('Error loading menu:', error);
@@ -254,26 +251,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const fileExt = file.name.split('.').pop();
             const fileName = `menu_${Date.now()}.${fileExt}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('restaurante-assets')
-                .upload(fileName, file);
-
-            if (uploadError) {
+            
+            const fileRef = ref(storage, 'restaurante-assets/' + fileName);
+            try {
+                await uploadBytes(fileRef, file);
+                const publicUrl = await getDownloadURL(fileRef);
+                itemImageUrl.value = publicUrl;
+                uploadStatus.textContent = '✅ Imagen lista para guardar.';
+                uploadStatus.style.color = 'green';
+                showToast('Imagen subida correctamente');
+            } catch(uploadError: any) {
                 console.error("Error al subir:", uploadError);
                 uploadStatus.textContent = 'Error al subir la imagen.';
                 uploadStatus.style.color = 'red';
                 showToast('Error al subir la imagen', 'error');
                 return;
             }
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('restaurante-assets')
-                .getPublicUrl(fileName);
-
-            itemImageUrl.value = publicUrl;
-            uploadStatus.textContent = '✅ Imagen lista para guardar.';
-            uploadStatus.style.color = 'green';
-            showToast('Imagen subida correctamente');
         });
     }
 
@@ -340,13 +333,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setLoading(submitBtn, true, 'Guardando');
 
-        let error;
-        if (currentMode === 'create') {
-            const { error: insertError } = await supabase.from('menu_items').insert([itemData]);
-            error = insertError;
-        } else {
-            const { error: updateError } = await supabase.from('menu_items').update(itemData).eq('id', currentItemId);
-            error = updateError;
+        let error: any = null;
+        try {
+            if (currentMode === 'create') {
+                (itemData as any)['created_at'] = new Date().toISOString();
+                await addDoc(collection(db, 'menu_items'), itemData);
+            } else {
+                await updateDoc(doc(db, 'menu_items', currentItemId!), itemData);
+            }
+        } catch (err) {
+            error = err;
         }
 
         setLoading(submitBtn, false, 'Guardar');
@@ -362,7 +358,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function deleteItem(id: string | null) {
         if (!id) return;
-        const { error } = await supabase.from('menu_items').delete().eq('id', id);
+        let error: any = null; try { await deleteDoc(doc(db, 'menu_items', id)); } catch(err) { error = err; }
         if (error) {
             showToast('Error al borrar: ' + error.message, 'error');
         } else {
@@ -375,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const homeForm = document.getElementById('home-content-form') as HTMLFormElement;
 
     async function loadHomePageContent(skipInputs = false) {
-        const { data, error } = await supabase.from('site_content').select('*');
+        let data: any[] = []; let error: any = null; try { const qs = await getDocs(collection(db, 'site_content')); data = qs.docs.map(d => d.data()); } catch(err) { error = err; }
         if (error) {
             showToast('Error cargando contenido: ' + error.message, 'error');
             return;
@@ -412,8 +408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             })).filter(update => update.key); // Ensure key exists
 
             if (textUpdates.length > 0) {
-                const { error: textError } = await supabase.from('site_content').upsert(textUpdates, { onConflict: 'key' });
-                if (textError) throw textError;
+                for (const update of textUpdates) { await setDoc(doc(db, 'site_content', update.key!), update, { merge: true }); }
             }
 
             // 2. Image Updates
@@ -430,22 +425,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const fileExt = file.name.split('.').pop();
                     const fileName = `content_${key}_${Date.now()}.${fileExt}`;
 
-                    const { error: uploadError } = await supabase.storage
-                        .from('restaurante-assets')
-                        .upload(fileName, file, { upsert: true });
+                    const fileRef = ref(storage, 'restaurante-assets/' + fileName);
+                    await uploadBytes(fileRef, file);
+                    const publicUrl = await getDownloadURL(fileRef);
 
-                    if (uploadError) throw uploadError;
-
-                    const { data } = supabase.storage.from('restaurante-assets').getPublicUrl(fileName);
-
-                    const { error: imgUpsertError } = await supabase.from('site_content').upsert({
+                    await setDoc(doc(db, 'site_content', key!), {
                         key: key,
-                        content: data.publicUrl + '?v=' + Date.now(),
+                        content: publicUrl + '?v=' + Date.now(),
                         type: 'image',
-                        updated_at: new Date()
-                    }, { onConflict: 'key' });
-
-                    if (imgUpsertError) throw imgUpsertError;
+                        updated_at: new Date().toISOString()
+                    }, { merge: true });
                     input.value = ''; // Reset file input
                 }
             }
@@ -491,7 +480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const experienciaForm = document.getElementById('experiencia-content-form') as HTMLFormElement;
 
     async function loadExperienciaContent(skipInputs = false) {
-        const { data, error } = await supabase.from('site_content').select('*').like('key', 'exp_%');
+        let data: any[] = []; let error: any = null; try { const qs = await getDocs(collection(db, 'site_content')); data = qs.docs.map(d => d.data()).filter((item: any) => item.key && item.key.startsWith('exp_')); } catch(err) { error = err; }
         if (error) {
             showToast('Error cargando contenido: ' + error.message, 'error');
             return;
@@ -534,7 +523,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!galleryAdminGrid) return;
         (galleryAdminGrid as HTMLElement).innerHTML = '<div style="grid-column: 1/-1;">Cargando Galería...</div>';
 
-        const { data, error } = await supabase.storage.from('restaurante-assets').list();
+        let data: any[] = []; let error: any = null; try { const listFolderRef = ref(storage, 'restaurante-assets'); const res = await listAll(listFolderRef); data = res.items; } catch(err) { error = err; }
         if (error || !data) {
             showToast('Error al cargar galería', 'error');
             return;
@@ -557,39 +546,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        galleryFiles.forEach((file: any) => {
-            const fileUrl = supabase.storage.from('restaurante-assets').getPublicUrl(file.name).data.publicUrl;
-            const isVideo = file.metadata?.mimetype?.startsWith('video') || file.name.endsWith('.mp4');
+        for (const file of galleryFiles) {
+            try {
+                const fileUrl = await getDownloadURL(file);
+                const isVideo = file.name.endsWith('.mp4');
+                const card = document.createElement('div');
+                card.style.background = 'white';
+                card.style.padding = '10px';
+                card.style.borderRadius = '8px';
+                card.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
 
-            const card = document.createElement('div');
-            card.style.background = 'white';
-            card.style.padding = '10px';
-            card.style.borderRadius = '8px';
-            card.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-            card.style.display = 'flex';
-            card.style.flexDirection = 'column';
+                const media = isVideo
+                    ? `<video src="${fileUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;" muted></video>`
+                    : `<img src="${fileUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;">`;
 
-            const media = isVideo
-                ? `<video src="${fileUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;" muted></video>`
-                : `<img src="${fileUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;">`;
-
-            card.innerHTML = `
-                ${media}
-                <div style="margin-top: 10px; text-align:right;">
-                    <button class="btn-delete-gallery" data-filename="${file.name}" style="background:#f44336; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Borrar</button>
-                </div>
-            `;
-            if (galleryAdminGrid) {
-                galleryAdminGrid.appendChild(card);
+                card.innerHTML = `
+                    ${media}
+                    <div style="margin-top: 10px; text-align:right;">
+                        <button class="btn-delete-gallery" data-filename="${file.name}" style="background:#f44336; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Borrar</button>
+                    </div>
+                `;
+                if (galleryAdminGrid) galleryAdminGrid.appendChild(card);
+            } catch (err) {
+                console.error(err);
             }
-        });
+        }
 
         document.querySelectorAll('.btn-delete-gallery').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const fileName = (e.currentTarget as HTMLElement).getAttribute('data-filename');
                 if (confirm(`¿Seguro que quieres borrar ${fileName}?`)) {
                     if (fileName) {
-                        const { error } = await supabase.storage.from('restaurante-assets').remove([fileName]);
+                        let error: any = null; try { await deleteObject(ref(storage, 'restaurante-assets/' + fileName)); } catch(err) { error = err; }
                         if (error) {
                             showToast('Error al borrar', 'error');
                         } else {
@@ -614,7 +604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `galeria_admin_${Date.now()}_${i}.${fileExt}`;
 
-                await supabase.storage.from('restaurante-assets').upload(fileName, file);
+                await uploadBytes(ref(storage, 'restaurante-assets/' + fileName), file);
             }
 
             showToast('Imágenes subidas con éxito');
@@ -630,11 +620,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadReservations() {
         reservationsTableBody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
 
-        const { data, error } = await supabase
-            .from('reservations')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
+        let data: any[] = []; let error: any = null; try { const qs = await getDocs(query(collection(db, 'reservations'), orderBy('created_at', 'desc'))); data = qs.docs.map(d => d.data()); } catch(err) { error = err; }
 
         if (error) {
             console.error('Error reservations:', error);

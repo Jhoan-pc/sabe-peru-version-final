@@ -1,11 +1,10 @@
 // Main.ts - Logic restored to classic Grid Layout
-import { createClient } from '@supabase/supabase-js';
+import { db, storage } from './firebase';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { ref, listAll, getDownloadURL, getMetadata } from 'firebase/storage';
 import { initReservationUI } from './reservations';
 
-// Initialize Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Supabase removed, using Firebase from './firebase.ts'
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- RESERVATION UI INITIALIZATION ---
@@ -21,8 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- DYNAMIC CONTENT ---
   async function initDynamicContent() {
     try {
-      const { data, error } = await supabase.from('site_content').select('*');
-      if (error) throw error;
+      const q = query(collection(db, 'site_content'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => doc.data());
 
       data?.forEach(item => {
         try {
@@ -206,20 +206,20 @@ document.addEventListener('DOMContentLoaded', () => {
       menuGrid!.innerHTML = '<div class="loading-state">Actualizando selección...</div>';
 
       try {
-        let query = supabase
-          .from('menu_items')
-          .select('*')
-          .eq('is_available', true)
-          .eq('category', category)
-          .order('sort_order', { ascending: true });
+        const q = query(
+          collection(db, 'menu_items'),
+          where('is_available', '==', true),
+          where('category', '==', category)
+        );
+        
+        const qs = await getDocs(q);
+        let data = qs.docs.map(d => d.data());
 
         if (tagFilter) {
-          query = query.contains('tags', [tagFilter]);
+          data = data.filter((d: any) => (d.tags || []).includes(tagFilter));
         }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
+        
+        data.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
 
         if (!data || data.length === 0) {
           const msg = tagFilter
@@ -363,12 +363,18 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadGallery() {
       const bucketName = 'restaurante-assets';
       try {
-        const { data, error } = await supabase.storage.from(bucketName).list();
-
-        if (error || !data) { console.warn('Gallery error or empty'); return; }
+        const listRef = ref(storage, bucketName);
+        let galleryFiles: any[] = [];
+        try {
+            const res = await listAll(listRef);
+            galleryFiles = res.items;
+        } catch(e) {
+            console.warn('Gallery no encontrada en Firebase aún');
+            return;
+        }
 
         // Filter and Sort
-        const galleryFiles = data
+        galleryFiles = galleryFiles
           .filter((file: any) => file.name.toLowerCase().startsWith('galeria') && !file.name.toLowerCase().includes('galeria2'))
           .sort((a: any, b: any) => {
             const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
@@ -379,9 +385,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (galleryFiles.length > 0) {
           galleryGrid!.innerHTML = ''; // Clear default
 
-          galleryFiles.forEach((file: any, index: number) => {
-            const fileUrl = supabase.storage.from(bucketName).getPublicUrl(file.name).data.publicUrl;
-            const isVideo = file.metadata?.mimetype?.startsWith('video') || file.name.endsWith('.mp4');
+          // Because getDownloadURL is async, we use Promise.all or for...of
+          for (const [index, fileRef] of galleryFiles.entries()) {
+            let fileUrl = '';
+            let isVideo = false;
+            try {
+               fileUrl = await getDownloadURL(fileRef);
+               const meta = await getMetadata(fileRef);
+               isVideo = meta.contentType?.startsWith('video') || fileRef.name.endsWith('.mp4');
+            } catch(e) { console.warn(e); }
+
 
             // Layout classes based on index (Original premium grid)
             let layoutClass = '';
@@ -391,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = `gallery-item ${layoutClass} reveal active`;
 
-            const baseName = file.name.split('.')[0].toLowerCase();
+            const baseName = ((fileRef as any).name || '').split('.')[0].toLowerCase();
             const captions: Record<string, { title: string, desc: string, linkStr?: string }> = {
               'galeria1': { title: 'La Experiencia', desc: 'Decoración milenaria en cada rincón, inspirada en las enigmáticas Líneas de Nazca.', linkStr: '<a href="/#experiencia" class="gallery-overlay-link">Ver Concepto</a>' },
               'galeria3': { title: 'Mixología 🍸', desc: 'Nuestros cócteles de autor te sorprenderán. El acompañamiento ideal para la experiencia peruana.', linkStr: '<a href="carta.html?cat=coctel" class="gallery-overlay-link">Ver Cócteles</a>' },
@@ -423,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
               item.innerHTML = `<img src="${fileUrl}" alt="${caption.title}" draggable="false" loading="lazy" decoding="async" onload="this.style.opacity=1" style="transform: translateZ(0); will-change: transform; transition: opacity 0.3s, transform 0.6s ease, filter 0.6s ease; opacity: 0;"><div class="skeleton-bg" style="position:absolute; inset:0; background:#111; z-index:-1;"></div>${overlayHTML}`;
             }
             galleryGrid!.appendChild(item);
-          });
+          }
         }
       } catch (err) {
         console.error('Error loading gallery:', err);
@@ -543,11 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const { error } = await supabase
-          .from('reservations')
-          .insert([reservationForDb]);
-
-        if (error) throw error;
+        await addDoc(collection(db, 'reservations'), reservationForDb);
 
         // WhatsApp Integration
         const restaurantPhone = siteCache['contact_whatsapp'] || "34662125650";

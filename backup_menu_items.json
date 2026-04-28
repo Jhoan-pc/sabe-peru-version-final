@@ -1,0 +1,630 @@
+[
+  {
+    "name": "Causa limeña de pollo",
+    "description": "Capa suave de papa amarilla amasada, rellena de pollo deshilachado, mezclado con mayonesa, zanahoria, alverjas y cilantro, coronada con aceitunas negras, huevo duro.",
+    "price": 14,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 1,
+    "tags": [
+      "pollo"
+    ]
+  },
+  {
+    "name": "Causa acevichada",
+    "description": "Capa suave de papa amarilla amasada, rellena de aguacate, y coronada de finos cortes de pescado marinado en jugo de limon y leche de tigre, mezclado con cebolla morada, cilantro, ají, acompañada de choclo peruano y cancha.",
+    "price": 17,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 2,
+    "tags": [
+      "pescado",
+      "picante"
+    ]
+  },
+  {
+    "name": "Causa Sabe a Perú",
+    "description": "Croquetas crujientes de causa, coronadas con choclos a la huancaina y un lomo saltado jugoso (trozos de carne, cebolla, tomate).",
+    "price": 17,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 3,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Ceviche de corvina",
+    "description": "Finos cortes de corvina frescos del día, marinados en jugo de limón y leche de tigre, mezclados con cebolla morada y finos cortes de cilantro y ají, acompañados con cancha crujiente y tiernos granos de choclo y cortes de camote glaseado.",
+    "price": 23,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 4,
+    "tags": [
+      "pescado",
+      "picante",
+      "gluten-free"
+    ]
+  },
+  {
+    "name": "Ceviche mixto Sabe a Perú",
+    "description": "Cortes de pescado y una mixtura de mariscos marinados en jugo de limón y leche de tigre, con cortes de cebolla y cilantro, coronada con una salsa de rocoto y ají amarillo, acompañado de camote glaseado, granos de choclo y canchita crocante.",
+    "price": 25,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 5,
+    "tags": [
+      "pescado",
+      "marisco",
+      "picante",
+      "gluten-free"
+    ]
+  },
+  {
+    "name": "Tiradito Sabe a Perú",
+    "description": "Finas tiras de pescado marinadas en jugo de limon, colocadas sobre una salsa suave de aji amarillo y maracuyá, acompañadas de granos de choclo y trozos de camote glaseados.",
+    "price": 23,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 6,
+    "tags": [
+      "pescado",
+      "picante"
+    ]
+  },
+  {
+    "name": "Anticuchos 3 brochetas",
+    "description": "Tradicional plato peruano. Brochetas de corazón de res marinadas en una salsa anticuchera (ají panka, vinagre, ajos y especias), acompañadas de papas a la huancaina y granos de choclo.",
+    "price": 12,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 7,
+    "tags": [
+      "carne",
+      "picante"
+    ]
+  },
+  {
+    "name": "Choritos a la chalaca 10 und.",
+    "description": "Mejillones frescos al natural, bañados con una colorida mezcla de cebolla, cilantro, tomate, choclo y ají, sazonados con jugo de limón y leche de tigre.",
+    "price": 12,
+    "category": "comida",
+    "subcategory": "ENTRADAS",
+    "sort_order": 8,
+    "tags": [
+      "marisco",
+      "picante",
+      "gluten-free"
+    ]
+  },
+  {
+    "name": "Arroz con mariscos",
+    "description": "Una mezcla de arroz con granos de choclos y arvejas, mariscos frescos salteado con cebollín, salsa madre de mariscos y toques de vino blanco acompañado de una salsa criolla y coronado con queso parmesano.",
+    "price": 22,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 10,
+    "tags": [
+      "marisco"
+    ]
+  },
+  {
+    "name": "Chaufa de mariscos",
+    "description": "Arroz salteado al wok con una seleccion de mariscos frescos salteado con cebollín, huevo, toques de ajo, jengibre brotes de soya, toques de salsa de soja y aceite de sesamo.",
+    "price": 20,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 11,
+    "tags": [
+      "marisco"
+    ]
+  },
+  {
+    "name": "Chaufa de carne",
+    "description": "Arroz salteado al wok con trozos de carne, salteado con cebollín, huevo, toques de ajo, jengibre brotes de soja, toques de salsa de soja y aceite de sesamo.",
+    "price": 20,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 12,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Tacu tacu de lomo saltado montado",
+    "description": "Un plato que combina la textura crujiente del tacu tacu (arroz y frijoles cocidos con un aderezo de la casa) con la sabrosura intensa de un lomo saltado, montado con un huevo frito.",
+    "price": 22,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 13,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Lomo Saltado",
+    "description": "Jugosos trozos de carne de res salteados al wok con cebolla morada, tomate, flameados con salsa de soya y un toque de vinagre y una salsa de la casa, servido con arroz blanco y patatas fritas.",
+    "price": 20,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 14,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Tallarines saltados de carne",
+    "description": "Tallarines salteados con trozos de carne de vacuno, cebolla, tomate, brotes de soya, morron, cebollin, toques de salsa de soya, aceite de sésamo y una salsa de la casa.",
+    "price": 20,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 15,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Spaghetti a la huancaina con lomo",
+    "description": "Deliciosos y cremosos espaguetis bañados con una salsa a la huancaina, elaborada con ají amarillo, queso fresco y leche, coronados con un jugoso lomo saltado.",
+    "price": 20,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 16,
+    "tags": [
+      "carne",
+      "picante"
+    ]
+  },
+  {
+    "name": "Jalea mixta",
+    "description": "Mariscos y pescado, apanados y fritos, acompañados con yuca frita y una salsa criolla. Un plato sabroso y crujiente de la cocina peruana.",
+    "price": 25,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 17,
+    "tags": [
+      "pescado",
+      "marisco"
+    ]
+  },
+  {
+    "name": "Chicharrón de pescado",
+    "description": "Trozos de pescados frescos apanados y fritos hasta alcanzar una textura crujiente y dorada, acompañados de unas yucas fritas y salsa criolla.",
+    "price": 20,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 18,
+    "tags": [
+      "pescado"
+    ]
+  },
+  {
+    "name": "Chicharrón de cerdo",
+    "description": "Cortes de cerdo cocinados lentamente hasta lograr una textura crocante y dorada, acompañados de patatas doradas y una salsa criolla de cebolla y hierbabuena.",
+    "price": 18,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 19,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Solomillo a lo macho",
+    "description": "Jugoso solomillo de res, cocinado al punto y cubierto con una salsa a lo macho, elaborada con mariscos frescos y ajíes peruanos.",
+    "price": 25,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 20,
+    "tags": [
+      "carne",
+      "marisco",
+      "picante"
+    ]
+  },
+  {
+    "name": "Mostrito",
+    "description": "Crocante pollo broaster acompañado con patatas fritas y un delicioso arroz chaufa (arroz salteado al wok con huevo, toques de cebollin, salsa de soja y aceite de sesamo).",
+    "price": 18,
+    "category": "comida",
+    "subcategory": "PLATOS DE FONDO",
+    "sort_order": 21,
+    "tags": [
+      "pollo"
+    ]
+  },
+  {
+    "name": "Hamburguesa XXL",
+    "description": "Pan Brioche, doble carne con queso gouda y queso cheddar, tocino y huevo acompañado de patatas fritas y mayo ajo.",
+    "price": 16,
+    "category": "comida",
+    "subcategory": "HAMBURGUESAS",
+    "sort_order": 30,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Hamburguesa Hawaiana",
+    "description": "Pan brioche, lechuga, carne, queso, tocino, queso gouda, piña caramelizada acompañados de patatas fritas y mayo ajo.",
+    "price": 14,
+    "category": "comida",
+    "subcategory": "HAMBURGUESAS",
+    "sort_order": 31,
+    "tags": [
+      "carne"
+    ]
+  },
+  {
+    "name": "Hamburguesa Sabe a Perú",
+    "description": "Pan brioche, cama de patatas fritas, carne, queso gouda, cebolla y tomate salteados con salsa de lomo y huevo, acompañado con patatas fritas y salsa huancaina.",
+    "price": 15,
+    "category": "comida",
+    "subcategory": "HAMBURGUESAS",
+    "sort_order": 32,
+    "tags": [
+      "carne",
+      "picante"
+    ]
+  },
+  {
+    "name": "Alitas acevichadas",
+    "description": "Deliciosas alitas broster bañadas en una salsa acevichada con cebolla y toques de cilantro, acompañados de patatas fritas.",
+    "price": 15,
+    "category": "comida",
+    "subcategory": "ESPECIALIDADES Y ENSALADAS",
+    "sort_order": 40,
+    "tags": [
+      "pollo",
+      "picante"
+    ]
+  },
+  {
+    "name": "Frescura tropical",
+    "description": "Mezcla fresca de lechuga, tomate, pepinillo y cebolla morada, combinada con jugosa piña y tiernos trozos de pollo a la plancha. Acompañada con una vinagreta artesanal de maracuyá.",
+    "price": 11,
+    "category": "comida",
+    "subcategory": "ESPECIALIDADES Y ENSALADAS",
+    "sort_order": 41,
+    "tags": [
+      "pollo",
+      "gluten-free"
+    ]
+  },
+  {
+    "name": "Ensalada tataki",
+    "description": "Tataki de atún con sésamo, servido sobre una fresca cama de lechuga con cebolla morada, tomate, huevo y suaves trozos de palta. Vinagreta exótica.",
+    "price": 12,
+    "category": "comida",
+    "subcategory": "ESPECIALIDADES Y ENSALADAS",
+    "sort_order": 42,
+    "tags": [
+      "pescado",
+      "gluten-free"
+    ]
+  },
+  {
+    "name": "Choco maracuyá",
+    "description": "",
+    "price": 6,
+    "category": "comida",
+    "subcategory": "POSTRES",
+    "sort_order": 50,
+    "tags": []
+  },
+  {
+    "name": "Torta 3 leches",
+    "description": "",
+    "price": 6,
+    "category": "comida",
+    "subcategory": "POSTRES",
+    "sort_order": 51,
+    "tags": []
+  },
+  {
+    "name": "Crema volteada",
+    "description": "",
+    "price": 5,
+    "category": "comida",
+    "subcategory": "POSTRES",
+    "sort_order": 52,
+    "tags": []
+  },
+  {
+    "name": "Arroz con leche",
+    "description": "",
+    "price": 5,
+    "category": "comida",
+    "subcategory": "POSTRES",
+    "sort_order": 53,
+    "tags": []
+  },
+  {
+    "name": "Brownie con helado",
+    "description": "",
+    "price": 6,
+    "category": "comida",
+    "subcategory": "POSTRES",
+    "sort_order": 54,
+    "tags": []
+  },
+  {
+    "name": "Helado de la casa",
+    "description": "",
+    "price": 5,
+    "category": "comida",
+    "subcategory": "POSTRES",
+    "sort_order": 55,
+    "tags": []
+  },
+  {
+    "name": "Cerveza Cusqueña negra",
+    "description": "",
+    "price": 3,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 60,
+    "tags": []
+  },
+  {
+    "name": "Cerveza Cusqueña dorada",
+    "description": "",
+    "price": 3,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 61,
+    "tags": []
+  },
+  {
+    "name": "Cerveza Cusqueña de trigo",
+    "description": "",
+    "price": 3,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 62,
+    "tags": []
+  },
+  {
+    "name": "Cerveza Pilsen",
+    "description": "",
+    "price": 3,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 63,
+    "tags": []
+  },
+  {
+    "name": "Inca kola",
+    "description": "",
+    "price": 3,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 64,
+    "tags": []
+  },
+  {
+    "name": "Chicha morada",
+    "description": "Vaso 5,00€ / Jarra 12,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 65,
+    "tags": []
+  },
+  {
+    "name": "Limonada frozen",
+    "description": "Vaso 5,00€ / Jarra 12,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 66,
+    "tags": []
+  },
+  {
+    "name": "Batido de Piña",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 70,
+    "tags": []
+  },
+  {
+    "name": "Batido de Maracuyá",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 71,
+    "tags": []
+  },
+  {
+    "name": "Batido de Mango",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 72,
+    "tags": []
+  },
+  {
+    "name": "Batido de Fresa",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 73,
+    "tags": []
+  },
+  {
+    "name": "Batido de Mora",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 74,
+    "tags": []
+  },
+  {
+    "name": "Batido de Guanábana",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 75,
+    "tags": []
+  },
+  {
+    "name": "Batido de Papaya",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 76,
+    "tags": []
+  },
+  {
+    "name": "Batido de Tamarindo",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 77,
+    "tags": []
+  },
+  {
+    "name": "Batido de Lulo",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 78,
+    "tags": []
+  },
+  {
+    "name": "Batido de Tomate de árbol",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 79,
+    "tags": []
+  },
+  {
+    "name": "Batido de Guayaba",
+    "description": "Vaso 5,00€ / Jarra 11,00€",
+    "price": 0,
+    "category": "bebida",
+    "subcategory": "BEBIDAS Y BATIDOS",
+    "sort_order": 80,
+    "tags": []
+  },
+  {
+    "name": "Ramon Bilbao",
+    "description": "",
+    "price": 19,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 90,
+    "tags": []
+  },
+  {
+    "name": "Azpilicueta",
+    "description": "",
+    "price": 19.5,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 91,
+    "tags": []
+  },
+  {
+    "name": "Izadi",
+    "description": "",
+    "price": 19,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 92,
+    "tags": []
+  },
+  {
+    "name": "Beronia",
+    "description": "",
+    "price": 19,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 93,
+    "tags": []
+  },
+  {
+    "name": "Ribera",
+    "description": "",
+    "price": 18,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 94,
+    "tags": []
+  },
+  {
+    "name": "Rueda",
+    "description": "",
+    "price": 19,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 95,
+    "tags": []
+  },
+  {
+    "name": "Albarino",
+    "description": "",
+    "price": 16,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 97,
+    "tags": []
+  },
+  {
+    "name": "Godello",
+    "description": "",
+    "price": 16,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 98,
+    "tags": []
+  },
+  {
+    "name": "Moscato",
+    "description": "",
+    "price": 16,
+    "category": "bebida",
+    "subcategory": "VINOS",
+    "sort_order": 100,
+    "tags": []
+  },
+  {
+    "name": "Prieto picudo",
+    "description": "",
+    "price": 19,
+    "category": "bebida",
+    "subcategory": "VINOS ROSADOS",
+    "sort_order": 110,
+    "tags": []
+  },
+  {
+    "name": "Navarra",
+    "description": "",
+    "price": 19,
+    "category": "bebida",
+    "subcategory": "VINOS ROSADOS",
+    "sort_order": 111,
+    "tags": []
+  },
+  {
+    "name": "Vino de la casa",
+    "description": "",
+    "price": 16,
+    "category": "bebida",
+    "subcategory": "SANGRÍA",
+    "sort_order": 120,
+    "tags": []
+  }
+]
