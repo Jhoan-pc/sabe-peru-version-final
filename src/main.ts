@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (galleryGrid) {
     async function loadGallery() {
-      const bucketName = 'restaurante-assets';
+        const bucketName = 'restaurante-assets';
       try {
         const listRef = ref(storage, bucketName);
         let galleryFiles: any[] = [];
@@ -369,18 +369,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await listAll(listRef);
             galleryFiles = res.items;
         } catch(e) {
-            console.warn('Gallery no encontrada en Firebase aún');
-            return;
+            console.warn('Gallery no encontrada en Firebase aún, usando locales.');
         }
 
-        // Filter and Sort
-        galleryFiles = galleryFiles
-          .filter((file: any) => file.name.toLowerCase().startsWith('galeria') && !file.name.toLowerCase().includes('galeria2'))
-          .sort((a: any, b: any) => {
-            const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
-            const numB = parseInt(b.name.match(/\d+/)?.[0] || '0');
-            return numA - numB;
-          });
+        // Si la galería de Firebase está vacía, usamos las locales por defecto
+        let isFallback = false;
+        if (galleryFiles.length === 0) {
+           isFallback = true;
+           galleryFiles = [
+             { name: 'galeria1.webp', localUrl: '/assets/Hero1.webp' },
+             { name: 'galeria2.webp', localUrl: '/assets/hero2.webp' },
+             { name: 'galeria3.webp', localUrl: '/assets/hero3.webp' },
+             { name: 'galeria4.webp', localUrl: '/assets/hero4.webp' },
+             { name: 'galeria6.webp', localUrl: '/assets/Ceviche.webp' },
+             { name: 'galeria7.webp', localUrl: '/assets/Cocteles.webp' },
+             { name: 'galeria8.webp', localUrl: '/assets/LomoSalteado.webp' },
+             { name: 'galeria9.webp', localUrl: '/assets/Mariscos.webp' }
+           ];
+        } else {
+            // Filter and Sort from Firebase
+            galleryFiles = galleryFiles
+              .filter((file: any) => file.name.toLowerCase().startsWith('galeria') && !file.name.toLowerCase().includes('galeria2'))
+              .sort((a: any, b: any) => {
+                const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
+                const numB = parseInt(b.name.match(/\d+/)?.[0] || '0');
+                return numA - numB;
+              });
+        }
 
         if (galleryFiles.length > 0) {
           galleryGrid!.innerHTML = ''; // Clear default
@@ -390,9 +405,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let fileUrl = '';
             let isVideo = false;
             try {
-               fileUrl = await getDownloadURL(fileRef);
-               const meta = await getMetadata(fileRef);
-               isVideo = meta.contentType?.startsWith('video') || fileRef.name.endsWith('.mp4');
+               if (isFallback) {
+                   fileUrl = fileRef.localUrl;
+                   isVideo = false;
+               } else {
+                   fileUrl = await getDownloadURL(fileRef);
+                   const meta = await getMetadata(fileRef);
+                   isVideo = meta.contentType?.startsWith('video') || fileRef.name.endsWith('.mp4');
+               }
             } catch(e) { console.warn(e); }
 
 
@@ -404,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = `gallery-item ${layoutClass} reveal active`;
 
-            const baseName = ((fileRef as any).name || '').split('.')[0].toLowerCase();
+            const baseName = (isFallback ? fileRef.name : (((fileRef as any).name || ''))).split('.')[0].toLowerCase();
             const captions: Record<string, { title: string, desc: string, linkStr?: string }> = {
               'galeria1': { title: 'La Experiencia', desc: 'Decoración milenaria en cada rincón, inspirada en las enigmáticas Líneas de Nazca.', linkStr: '<a href="/#experiencia" class="gallery-overlay-link">Ver Concepto</a>' },
               'galeria3': { title: 'Mixología 🍸', desc: 'Nuestros cócteles de autor te sorprenderán. El acompañamiento ideal para la experiencia peruana.', linkStr: '<a href="carta.html?cat=coctel" class="gallery-overlay-link">Ver Cócteles</a>' },
