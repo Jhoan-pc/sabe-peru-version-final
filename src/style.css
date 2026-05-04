@@ -1441,6 +1441,7 @@ footer {
   );
   transform: rotate(45deg);
   animation: shiny-button 3s infinite;
+  pointer-events: none;
 }
 
 @keyframes shiny-button {
@@ -1448,11 +1449,13 @@ footer {
   20%, 100% { transform: translateX(100%) rotate(45deg); }
 }
 
-.item-photo-btn:hover {
-  transform: scale(1.1) translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
-  background: white;
-  color: var(--color-gold);
+@media (hover: hover) {
+  .item-photo-btn:hover {
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+    background: white;
+    color: var(--color-gold);
+  }
 }
 
 .item-photo-btn:active {
@@ -1499,9 +1502,25 @@ footer {
 .menu-modal-img {
   max-width: 100%;
   max-height: 70vh;
+  min-height: 300px;
+  min-width: 300px;
   border: 1px solid rgba(212, 175, 55, 0.3);
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
   object-fit: contain;
+  background-color: rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+.menu-modal-img::before {
+  content: "Cargando imagen...";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-gold);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  z-index: -1;
 }
 
 .menu-modal-info {

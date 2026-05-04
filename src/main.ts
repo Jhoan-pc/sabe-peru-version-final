@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const photoBtn = item.image_url ? `
               <button class="item-photo-btn" data-img="${item.image_url}" data-name="${item.name}" data-desc="${item.description || ''}" title="Ver foto del plato">
-                <span style="font-size: 1.1em; margin-right: 3px;">📸</span> Ver
+                <span style="font-size: 1.1em; margin-right: 3px; pointer-events: none;">📸</span> Ver
               </button>
             ` : '';
 
@@ -302,7 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const desc = target.getAttribute('data-desc');
 
             if (photoModal && modalImg && imgUrl) {
-              modalImg.src = imgUrl;
+              let finalUrl = imgUrl;
+              if (finalUrl.includes('cloudinary')) {
+                  if (finalUrl.includes('f_auto,q_auto') && !finalUrl.includes('w_')) {
+                      finalUrl = finalUrl.replace('f_auto,q_auto', 'f_auto,q_auto,w_800,c_limit');
+                  } else if (!finalUrl.includes('f_auto')) {
+                      finalUrl = finalUrl.replace('/upload/', '/upload/f_auto,q_auto,w_800,c_limit/');
+                  }
+              }
+              modalImg.src = finalUrl;
               if (modalName) modalName.textContent = name || '';
               if (modalDesc) modalDesc.textContent = desc || '';
               photoModal.classList.add('active');

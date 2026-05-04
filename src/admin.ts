@@ -2,7 +2,23 @@
 import { db, auth, storage } from './firebase';
 import { collection, query, getDocs, addDoc, updateDoc, doc, deleteDoc, setDoc, orderBy } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
+import { ref, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
+
+const cloudName = 'dhvbqs2ba';
+const uploadPreset = 'sabeaperu_firm';
+
+async function uploadToCloudinary(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+    });
+    if (!res.ok) throw new Error('Error al subir a Cloudinary');
+    const data = await res.json();
+    return data.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_800,c_limit/');
+}
 
 let currentMode = 'create'; // or 'edit'
 let currentItemId: string | null = null;
@@ -248,18 +264,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             uploadStatus.textContent = 'Subiendo imagen...';
             uploadStatus.style.color = 'var(--color-gold)';
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `menu_${Date.now()}.${fileExt}`;
-
             
-            const fileRef = ref(storage, 'restaurante-assets/' + fileName);
+            
+
             try {
-                await uploadBytes(fileRef, file);
-                const publicUrl = await getDownloadURL(fileRef);
+                const publicUrl = await uploadToCloudinary(file);
                 itemImageUrl.value = publicUrl;
                 uploadStatus.textContent = '✅ Imagen lista para guardar.';
                 uploadStatus.style.color = 'green';
-                showToast('Imagen subida correctamente');
+                showToast('Imagen subida correctamente a Cloudinary');
             } catch(uploadError: any) {
                 console.error("Error al subir:", uploadError);
                 uploadStatus.textContent = 'Error al subir la imagen.';
@@ -422,12 +435,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         continue;
                     }
 
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `content_${key}_${Date.now()}.${fileExt}`;
+                    
+                    
 
-                    const fileRef = ref(storage, 'restaurante-assets/' + fileName);
-                    await uploadBytes(fileRef, file);
-                    const publicUrl = await getDownloadURL(fileRef);
+                    const publicUrl = await uploadToCloudinary(file);
 
                     await setDoc(doc(db, 'site_content', key!), {
                         key: key,
@@ -601,10 +612,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const fileExt = file.name.split('.').pop();
-                const fileName = `galeria_admin_${Date.now()}_${i}.${fileExt}`;
 
-                await uploadBytes(ref(storage, 'restaurante-assets/' + fileName), file);
+                
+                
+
+                await uploadToCloudinary(file);
             }
 
             showToast('Imágenes subidas con éxito');
