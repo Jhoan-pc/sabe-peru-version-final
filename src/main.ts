@@ -238,12 +238,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const tagIcons: { [key: string]: string } = {
-          'pescado': '<span class="menu-tag" title="Pescado">🐟</span>',
-          'marisco': '<span class="menu-tag" title="Marisco">🦐</span>',
-          'carne': '<span class="menu-tag" title="Carne">🥩</span>',
-          'pollo': '<span class="menu-tag" title="Pollo">🍗</span>',
-          'picante': '<span class="menu-tag" title="Picante">🌶️</span>',
-          'gluten-free': '<span class="menu-tag" title="Sin Gluten">🌾</span>'
+          'pescado': '<span class="menu-tag" tabindex="0" data-tooltip="Pescado">🐟</span>',
+          'marisco': '<span class="menu-tag" tabindex="0" data-tooltip="Marisco">🦐</span>',
+          'carne': '<span class="menu-tag" tabindex="0" data-tooltip="Carne">🥩</span>',
+          'pollo': '<span class="menu-tag" tabindex="0" data-tooltip="Pollo">🍗</span>',
+          'picante': '<span class="menu-tag" tabindex="0" data-tooltip="Picante">🌶️</span>',
+          'gluten-free': '<span class="menu-tag" tabindex="0" data-tooltip="Sin Gluten">🌾</span>',
+          'gluten': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Gluten">🌾</span>',
+          'huevos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Huevos">🥚</span>',
+          'lacteos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Lácteos">🥛</span>',
+          'soja': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Soja">🫘</span>',
+          'cacahuetes': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Cacahuetes">🥜</span>',
+          'mostaza': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Mostaza">🟡</span>',
+          'crustaceos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Crustáceos">🦐</span>',
+          'apio': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Apio">🥬</span>',
+          'moluscos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Moluscos">🦪</span>',
+          'sesamo': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Sésamo">🥯</span>'
         };
 
         let html = '';
