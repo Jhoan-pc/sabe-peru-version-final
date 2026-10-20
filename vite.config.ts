@@ -9,6 +9,18 @@ export default defineConfig({
                 carta: resolve(__dirname, 'carta.html'),
                 admin: resolve(__dirname, 'admin.html'),
                 experiencia: resolve(__dirname, 'experiencia.html')
+            },
+            output: {
+                assetFileNames: (assetInfo) => {
+                    const name = assetInfo.name || '';
+                    if (name.endsWith('.css')) {
+                        if (name.includes('experiencia')) {
+                            return 'assets/experiencia-[hash][extname]';
+                        }
+                        return 'assets/style-[hash][extname]';
+                    }
+                    return 'assets/[name]-[hash][extname]';
+                }
             }
         }
     }

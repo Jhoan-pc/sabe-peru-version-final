@@ -18,9 +18,13 @@
   <meta property="og:title" content="Sabe a Perú | Alta Gastronomía Peruana en Oviedo">
   <meta property="og:description"
     content="Sabe a Perú es el restaurante referente de la alta gastronomía peruana en Oviedo. Descubre nuestra carta.">
-  <meta property="og:image"
-    content="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/Hero1.png">
+  <meta property="og:image" content="https://www.sabeaperu.es/assets/Hero1.webp">
+  <meta property="og:image:alt" content="Sabe a Perú - Restaurante de Alta Gastronomía Peruana en Oviedo">
 
+  <!-- Preconexión temprana a Google Fonts (Cormorant Garamond & Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&display=swap">
   <link rel="stylesheet" href="/src/style.css">
 </head>
 
@@ -107,16 +111,29 @@
       <div class="hero-slideshow">
         <img id="img-hero-1"
           src="/assets/Hero1.webp"
-          class="hero-slide active" alt="Sabe a Perú Ambiente 1">
+          class="hero-slide active"
+          alt="Sabe a Perú Ambiente 1"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async">
         <img id="img-hero-2"
           src="/assets/hero2.webp"
-          class="hero-slide" alt="Sabe a Perú Ambiente 2">
+          class="hero-slide"
+          alt="Sabe a Perú Ambiente 2"
+          loading="lazy"
+          decoding="async">
         <img id="img-hero-3"
           src="/assets/hero3.webp"
-          class="hero-slide" alt="Sabe a Perú Platos">
+          class="hero-slide"
+          alt="Sabe a Perú Platos"
+          loading="lazy"
+          decoding="async">
         <img id="img-hero-4"
           src="/assets/hero4.webp"
-          class="hero-slide" alt="Sabe a Perú Detalle">
+          class="hero-slide"
+          alt="Sabe a Perú Detalle"
+          loading="lazy"
+          decoding="async">
       </div>
       <div class="hero-content-center">
         <span id="hero-label" class="label-white">Bienvenidos al Sabor</span>
@@ -145,7 +162,9 @@
           <div class="concept-image">
             <img id="img-philosophy"
               src="/assets/Ceviche.webp"
-              alt="Plato de autor Sabe a Perú">
+              alt="Plato de autor Sabe a Perú"
+              loading="lazy"
+              decoding="async">
           </div>
         </div>
       </div>
@@ -168,14 +187,18 @@
         <div class="spec-img">
           <img id="img-spec-1"
             src="/assets/Mariscos.webp"
-            alt="Pescados">
+            alt="Pescados"
+            loading="lazy"
+            decoding="async">
         </div>
       </div>
       <div class="specialty-block reverse">
         <div class="spec-img">
           <img id="img-spec-2"
             src="/assets/LomoSalteado.webp"
-            alt="Carnes">
+            alt="Carnes"
+            loading="lazy"
+            decoding="async">
         </div>
         <div class="spec-content">
           <span class="label">De la Tierra</span>
@@ -195,7 +218,9 @@
         <div class="spec-img">
           <img id="img-spec-3"
             src="/assets/Cocteles.webp"
-            alt="Cócteles">
+            alt="Cócteles"
+            loading="lazy"
+            decoding="async">
         </div>
       </div>
     </section>
@@ -213,51 +238,12 @@
             <button id="gallery-next" class="gallery-arrow" aria-label="Next image">→</button>
           </div>
         </div>
-        <div class="gallery-grid" id="main-gallery-grid">
-          <div class="gallery-item tall">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/Galeria1.png"
-              alt="Ambiente Sabe a Perú">
-          </div>
-
-          <div class="gallery-item">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria3.png"
-              alt="Cóctel">
-          </div>
-          <div class="gallery-item wide">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria4.png"
-              alt="Preparación">
-          </div>
-          <div class="gallery-item">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria5.png"
-              alt="Postre">
-          </div>
-          <div class="gallery-item">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria6.png"
-              alt="Galería 6">
-          </div>
-          <div class="gallery-item">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria7.png"
-              alt="Galería 7">
-          </div>
-          <div class="gallery-item">
-            <img src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria8.png"
-              alt="Galería 8">
-          </div>
-          <div class="gallery-item">
-            <img
-              src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria10.png"
-              alt="Galería 10">
-          </div>
-          <div class="gallery-item">
-            <img
-              src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria11.png"
-              alt="Galería 11">
-          </div>
-          <div class="gallery-item">
-            <img
-              src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria12.png"
-              alt="Galería 12">
-          </div>
+        <div class="gallery-grid" id="main-gallery-grid" aria-label="Galería gastronómica" role="region">
+          <!-- Contenedor con dimensiones reservadas para erradicar CLS y descargas fantasma -->
+          <div class="gallery-item tall gallery-skeleton" aria-hidden="true"></div>
+          <div class="gallery-item gallery-skeleton" aria-hidden="true"></div>
+          <div class="gallery-item wide gallery-skeleton" aria-hidden="true"></div>
+          <div class="gallery-item gallery-skeleton" aria-hidden="true"></div>
         </div>
       </div>
     </section>
@@ -267,6 +253,7 @@
       <div class="awards-grid">
         <div class="award-item">
           <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chef-hat.svg" alt="Award 1"
+            loading="lazy" decoding="async"
             style="filter: invert(0.6);">
           <p>Auténtica Gastronomía Peruana</p>
         </div>
@@ -315,6 +302,7 @@
         </div>
         <div class="award-item">
           <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/heart.svg" alt="Award 3"
+            loading="lazy" decoding="async"
             style="filter: invert(0.6);">
           <p>Excelencia en Servicio</p>
         </div>
@@ -329,8 +317,9 @@
 
         <form id="reservation-form" class="modern-form">
           <div class="form-row">
-            <input type="text" name="name" placeholder="Su Nombre *" required>
-            <input type="email" name="email" placeholder="Email *" required>
+            <input type="text" name="name" placeholder="Su Nombre *" required autocomplete="name">
+            <input type="email" name="email" placeholder="Email *" required autocomplete="email">
+            <input type="tel" name="phone" placeholder="Teléfono WhatsApp (opcional)" autocomplete="tel">
           </div>
           <div class="form-row" style="display: flex; gap: 15px; align-items: flex-end;">
             <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
@@ -346,16 +335,18 @@
           <div class="form-row">
             <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
               <label style="font-size: 0.8rem; color: var(--color-gold); opacity: 0.8;">Personas para la reserva *</label>
-              <input type="number" name="people" placeholder="Ej: 2" min="1" max="20" required>
+              <input type="number" name="people" id="reservation-people" placeholder="Ej: 2" min="1" max="20" value="2" required>
             </div>
             <div style="flex: 1.5; display: flex; flex-direction: column; gap: 5px;">
               <label style="font-size: 0.8rem; color: var(--color-gold); opacity: 0.8;">Motivo especial (Opcional)</label>
               <input type="text" name="occasion" placeholder="Compleaños, aniversario, empresa...">
             </div>
           </div>
-          <button type="submit" class="btn-gold-fill">Solicitar Reserva</button>
+          <div id="imperial-table-notice" class="imperial-notice" style="display:none;" role="status">Grupos de más de 6 comensales se asignan a nuestra Mesa Imperial y requieren confirmación directa con el Maître.</div>
+          <button type="submit" class="btn-gold-fill" id="btn-submit-reservation">Solicitar Reserva</button>
           <div id="form-message" class="form-message"></div>
         </form>
+        <div id="reservation-confirmation-card" class="confirmation-card" style="display:none;"></div>
       </div>
     </section>
 
@@ -445,6 +436,7 @@
     </div>
   </footer>
 
+  <div id="toast-container" class="toast-container"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 

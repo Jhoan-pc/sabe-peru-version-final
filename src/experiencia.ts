@@ -1,8 +1,23 @@
 import { db } from './firebase';
 import { collection, query, getDocs, addDoc } from 'firebase/firestore';
-import { initReservationUI } from './reservations';
+import {
+    initReservationUI,
+    validateGuestCount,
+    checkSlotAvailabilityAtSubmit,
+    generateReservationLocator,
+    buildWhatsAppReservationUrl,
+    renderConfirmationCardHtml,
+    showProblemToast,
+    type ReservationDoc
+} from './reservations';
 
-// Supabase removido
+interface SiteContentItem {
+    key?: string;
+    content?: string;
+    type?: string;
+}
+
+// Using Firebase from './firebase.ts'
 
 // Carousel and Animation Logic
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,15 +28,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DYNAMIC CONTENT ---
     // The landing page uses static content tailored for hotel guests as fallback.
-    // It pulls text from Supabase using keys prefixed with 'exp_' (e.g., exp_hero_title).
+    // It pulls text from Firestore using keys prefixed with 'exp_' (e.g., exp_hero_title).
     // If the content is empty or doesn't exist, it keeps the default hardcoded HTML.
     async function initDynamicContent() {
         try {
             const qs = await getDocs(query(collection(db, 'site_content')));
-            const data = qs.docs.map(doc => doc.data()).filter((item: any) => item.key && item.key.startsWith('exp_'));
+            const data = qs.docs.map(doc => doc.data() as SiteContentItem).filter((item: SiteContentItem) => !!item.key && item.key.startsWith('exp_'));
 
             data?.forEach(item => {
-                siteCache[item.key] = item.content;
+                if (!item.key) return;
+                siteCache[item.key] = item.content || '';
                 const el = document.getElementById(item.key.replace(/_/g, '-'));
                 // Only replace if item.content actually has text/url, otherwise keep fallback
                 if (el && item.content && item.content.trim() !== '') {
@@ -40,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         } catch (err) {
-            console.warn('Usando contenido estático por defecto (Supabase offline o vacío)');
+            console.warn('Usando contenido estático por defecto (offline o vacío)');
         }
     }
 
@@ -148,77 +164,142 @@ document.addEventListener('DOMContentLoaded', () => {
         animElements.forEach(el => el.classList.add('visible'));
     }
 
-    // --- RESERVATION LOGIC ---
+    // --- RESERVATION LOGIC (2-Step Anti-Popup Concierge Flow) ---
     const reservationForm = document.getElementById('reservation-form');
-    const formMessage = document.getElementById('form-message');
 
     if (reservationForm) {
+        // Dynamic listener on comensales input for Imperial Table banner
+        const peopleInput = reservationForm.querySelector('input[name="people"]') as HTMLInputElement | null;
+        const imperialBanner = document.getElementById('imperial-table-notice');
+        if (peopleInput && imperialBanner) {
+            const handlePaxChange = () => {
+                const pax = parseInt(peopleInput.value, 10);
+                if (!isNaN(pax) && pax > 6) {
+                    imperialBanner.style.display = 'block';
+                } else {
+                    imperialBanner.style.display = 'none';
+                }
+            };
+            peopleInput.addEventListener('input', handlePaxChange);
+            peopleInput.addEventListener('change', handlePaxChange);
+            handlePaxChange();
+        }
+
         reservationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = reservationForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-
             if (submitBtn) submitBtn.disabled = true;
-            if (formMessage) {
-                formMessage.textContent = 'Procesando su solicitud...';
-                formMessage.style.color = 'var(--gold)';
-            }
 
             const formData = new FormData(reservationForm as HTMLFormElement);
+            const name = (formData.get('name') as string || '').trim();
+            const email = (formData.get('email') as string || '').trim();
+            const phone = (formData.get('phone') as string || '').trim();
+            const date = (formData.get('date') as string || '').trim();
+            const time = (formData.get('time') as string || '').trim();
+            const peopleRaw = formData.get('people') as string || '';
+            const people = parseInt(peopleRaw, 10);
+            const occasion = (formData.get('occasion') as string || '').trim();
 
-            const reservationForDb = {
-                customer_name: formData.get('name'),
-                customer_email: formData.get('email'),
-                reservation_date: formData.get('date'),
-                reservation_time: formData.get('time'),
-                number_of_people: parseInt(formData.get('people') as string),
-                occasion: formData.get('occasion'),
-                status: 'pending'
+            // Validate required fields
+            if (!name || !email || !date || !time || isNaN(people)) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/validation',
+                    title: 'Datos de reserva incompletos',
+                    status: 422,
+                    detail: 'Por favor, complete todos los campos obligatorios (*).'
+                });
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            // Validate guest count boundaries
+            const guestCheck = validateGuestCount(people);
+            if (!guestCheck.valid) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/invalid-guest-count',
+                    title: 'Número de comensales no válido',
+                    status: 422,
+                    detail: guestCheck.error || 'El número de comensales debe ser un número entero entre 1 y 20.'
+                });
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            // Pre-flight slot capacity re-check against Firestore
+            const slotCheck = await checkSlotAvailabilityAtSubmit(date, time);
+            if (!slotCheck.available) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/slot-full',
+                    title: 'Franja horaria completa',
+                    status: 409,
+                    detail: 'El aforo máximo de 4 mesas concurrentes ha sido alcanzado.'
+                });
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            // Generate collision-resistant locator (SP-XXXX)
+            const locator = generateReservationLocator();
+
+            // Persist reservation in Firestore
+            const reservationForDb: ReservationDoc = {
+                customer_name: name,
+                customer_email: email,
+                customer_phone: phone || undefined,
+                reservation_date: date,
+                reservation_time: time,
+                number_of_people: people,
+                occasion: occasion || undefined,
+                locator,
+                status: 'pending',
+                created_at: new Date().toISOString()
             };
 
             try {
                 await addDoc(collection(db, 'reservations'), reservationForDb);
 
-                // WhatsApp Integration
-                const restaurantPhone = siteCache['contact_whatsapp'] || "34662125650";
-                const waMessage = `Hola, quisiera confirmar mi reserva (Invitación Hotel) en Sabe a Perú:
-📅 Fecha: ${reservationForDb.reservation_date}
-⏰ Hora: ${reservationForDb.reservation_time}
-👤 Personas: ${reservationForDb.number_of_people}
-📝 Nombre: ${reservationForDb.customer_name}
-🎉 Ocasión: ${reservationForDb.occasion}`;
+                // Build voluntary WhatsApp confirmation URL
+                const restaurantPhone = siteCache['contact_whatsapp'] || '34662125650';
+                const waUrl = buildWhatsAppReservationUrl({
+                    phone: restaurantPhone,
+                    locator,
+                    name,
+                    date,
+                    time,
+                    people
+                });
 
-                const waUrl = `https://wa.me/${restaurantPhone}?text=${encodeURIComponent(waMessage)}`;
+                // Render confirmation card (replacing/covering form, zero window.open)
+                const cardHtml = renderConfirmationCardHtml({
+                    locator,
+                    customer_name: name,
+                    customer_email: email,
+                    customer_phone: phone || undefined,
+                    reservation_date: date,
+                    reservation_time: time,
+                    number_of_people: people,
+                    occasion: occasion || undefined,
+                    waUrl,
+                    isImperial: guestCheck.isImperial,
+                    imperialNotice: guestCheck.notice
+                });
 
-                window.open(waUrl, '_blank');
-
-                if (formMessage) {
-                    formMessage.innerHTML = '¡Reserva recibida! Si WhatsApp no se abre autmáticamente, confirme aquí:<br>';
-
-                    const waBtn = document.createElement('a');
-                    waBtn.href = waUrl;
-                    waBtn.target = '_blank';
-                    waBtn.style.marginTop = '15px';
-                    waBtn.style.display = 'inline-block';
-                    waBtn.style.textDecoration = 'none';
-                    waBtn.style.padding = '10px 20px';
-                    waBtn.style.background = '#25D366';
-                    waBtn.style.color = 'white';
-                    waBtn.style.borderRadius = '5px';
-                    waBtn.style.fontWeight = 'bold';
-                    waBtn.textContent = 'Confirmar por WhatsApp →';
-
-                    formMessage.appendChild(waBtn);
+                const confirmationCard = document.getElementById('reservation-confirmation-card');
+                if (confirmationCard) {
+                    confirmationCard.outerHTML = cardHtml;
+                } else {
+                    reservationForm.insertAdjacentHTML('afterend', cardHtml);
                 }
-
-                (reservationForm as HTMLFormElement).reset();
+                (reservationForm as HTMLFormElement).style.display = 'none';
 
             } catch (error) {
                 console.error('Error al reservar:', error);
-                if (formMessage) {
-                    formMessage.textContent = 'Hubo un error de conexión al enviar. Por favor, contáctenos directamente por WhatsApp.';
-                    formMessage.style.color = '#ff6b6b';
-                }
-            } finally {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/reservation-mutation',
+                    title: 'Error de conexión',
+                    status: 500,
+                    detail: 'No hemos podido registrar su solicitud en este momento. Por favor, contacte directamente por teléfono o WhatsApp.'
+                });
                 if (submitBtn) submitBtn.disabled = false;
             }
         });

@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sabe a Perú | Panel de Administración</title>
+    <!-- Preconexión temprana a Google Fonts (Cormorant Garamond & Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&display=swap">
     <link rel="stylesheet" href="/src/style.css">
     <script type="module" src="/src/admin.ts"></script>
     <style>
@@ -359,21 +363,17 @@
                 <h2>Editar Contenido de Inicio</h2>
                 <form id="home-content-form">
                     <div class="content-group">
-                        <h3>Tipografía Base</h3>
-                        <label>Fuente de Títulos (Elegante)
+                        <h3>Tipografía Base (Sistema Oficial Quiet Luxury)</h3>
+                        <label>Fuente Editorial para Títulos (Serif)
                             <select data-key="font_title" style="width:100%; padding:10px; margin: 10px 0;">
-                                <option value="'Playfair Display', serif">Playfair Display (Por defecto)</option>
-                                <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
-                                <option value="'Cinzel', serif">Cinzel</option>
-                                <option value="'DM Serif Display', serif">DM Serif Display</option>
+                                <option value="'Cormorant Garamond', serif">Cormorant Garamond (Por defecto)</option>
+                                <option value="'Playfair Display', serif">Playfair Display</option>
                             </select>
                         </label>
-                        <label>Fuente de Textos (Legible)
+                        <label>Fuente Geométrica para Textos & Micro-copy (Sans-Serif)
                             <select data-key="font_text" style="width:100%; padding:10px; margin: 10px 0;">
                                 <option value="'Inter', sans-serif">Inter (Por defecto)</option>
-                                <option value="'Lato', sans-serif">Lato</option>
                                 <option value="'Montserrat', sans-serif">Montserrat</option>
-                                <option value="'Open Sans', sans-serif">Open Sans</option>
                             </select>
                         </label>
                     </div>
@@ -601,11 +601,13 @@
                 <div class="action-bar">
                     <h2>Gestión de Galería</h2>
                     <div>
-                        <input type="file" id="gallery-upload-input" accept="image/*,video/mp4" style="display:none;"
-                            multiple>
+                        <input type="file" id="gallery-image-file" accept="image/jpeg,image/png,image/webp" style="display:none;" multiple>
                         <button id="add-gallery-btn" class="btn-gold-fill"
-                            onclick="document.getElementById('gallery-upload-input').click()">+ Subir Imágenes</button>
+                            onclick="document.getElementById('gallery-image-file').click()">+ Subir Imágenes</button>
                     </div>
+                </div>
+                <div id="gallery-preview-container" class="image-preview-wrapper" style="display:none;">
+                    <img id="preview-gallery-image" src="" alt="Previsualización de galería">
                 </div>
                 <div id="gallery-admin-grid"
                     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 50px;">
@@ -613,19 +615,28 @@
                 </div>
             </div>
 
-            <!-- VISTA RESERVAS (Básico) -->
+            <!-- VISTA RESERVAS (Centro de Operaciones de Sala) -->
             <div id="reservations-view" class="dashboard-view">
-                <h2>Reservas Recientes</h2>
+                <div class="action-bar reservations-header">
+                    <h2>Gestión Operativa de Reservas</h2>
+                    <div id="reservations-tabs" class="reservation-filter-tabs">
+                        <button type="button" class="tab-btn active" id="tab-pending" data-filter="pending" data-tab="pending">Pendientes</button>
+                        <button type="button" class="tab-btn" id="tab-today" data-filter="today" data-tab="today">Hoy</button>
+                        <button type="button" class="tab-btn" id="tab-all" data-filter="all" data-tab="all">Todas</button>
+                    </div>
+                </div>
                 <div style="overflow-x:auto;">
-                    <table class="items-table">
+                    <table class="items-table reservations-table">
                         <thead>
                             <tr>
+                                <th>Localizador</th>
                                 <th>Fecha</th>
                                 <th>Hora</th>
+                                <th>Comensales</th>
                                 <th>Cliente</th>
-                                <th>Pax</th>
-                                <th>Contacto</th>
-                                <th>Motivo</th>
+                                <th>Teléfono</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="reservations-table-body">
@@ -675,20 +686,44 @@
                     </label>
                 </div>
 
-                <label>Etiquetas (picante, pescado, marisco, carne, pollo, gluten-free)
-                    <input type="text" id="item-tags" style="width:100%; padding:8px;" placeholder="Separadas por comas">
-                </label>
+                <div class="form-group allergen-selector-group">
+                    <label class="form-label-title" style="display:block; margin-bottom:6px; font-weight:600;">
+                        Alérgenos e Ingredientes Clave
+                    </label>
+                    <div id="allergen-chips-container" class="allergen-chips-grid">
+                        <button type="button" class="tag-chip" data-tag="pescado">PESCADO</button>
+                        <button type="button" class="tag-chip" data-tag="marisco">MARISCO</button>
+                        <button type="button" class="tag-chip" data-tag="carne">CARNE</button>
+                        <button type="button" class="tag-chip" data-tag="pollo">POLLO</button>
+                        <button type="button" class="tag-chip" data-tag="picante">PICANTE</button>
+                        <button type="button" class="tag-chip" data-tag="gluten-free">GLUTEN-FREE</button>
+                        <button type="button" class="tag-chip" data-tag="gluten">GLUTEN</button>
+                        <button type="button" class="tag-chip" data-tag="huevos">HUEVOS</button>
+                        <button type="button" class="tag-chip" data-tag="lacteos">LÁCTEOS</button>
+                        <button type="button" class="tag-chip" data-tag="soja">SOJA</button>
+                        <button type="button" class="tag-chip" data-tag="cacahuetes">CACAHUETES</button>
+                        <button type="button" class="tag-chip" data-tag="mostaza">MOSTAZA</button>
+                        <button type="button" class="tag-chip" data-tag="crustaceos">CRUSTÁCEOS</button>
+                        <button type="button" class="tag-chip" data-tag="apio">APIO</button>
+                        <button type="button" class="tag-chip" data-tag="moluscos">MOLUSCOS</button>
+                        <button type="button" class="tag-chip" data-tag="sesamo">SÉSAMO</button>
+                    </div>
+                </div>
 
                 <label>URL de la Imagen (Opcional)
                     <div style="display:flex; gap:10px; align-items:center;">
                         <input type="text" id="item-image-url" style="flex:1; padding:8px;" placeholder="https://ejemplo.com/plato.jpg">
                         <label class="btn-gold-fill" style="padding:8px 15px; margin:0; font-size:0.8rem; cursor:pointer; display:inline-block; text-align:center;">
                             Subir Foto
-                            <input type="file" id="item-image-file" accept="image/*" style="display:none;">
+                            <input type="file" id="dish-image-file" accept="image/jpeg,image/png,image/webp" style="display:none;">
                         </label>
                     </div>
                     <small id="upload-status" style="opacity:0.7; font-size:0.8rem; display:block; margin-top:5px;">Deja vacío si no tiene foto.</small>
                 </label>
+
+                <div id="dish-preview-container" class="image-preview-wrapper" style="display:none;">
+                    <img id="preview-item-image" src="" alt="Previsualización del plato">
+                </div>
 
                 <label style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" id="item-available" checked> Disponible
@@ -700,7 +735,7 @@
     </div>
 
     <!-- TOAST CONTAINER -->
-    <div id="toast-container"></div>
+    <div id="toast-container" class="toast-container"></div>
 
 </body>
 

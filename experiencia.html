@@ -5,12 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sabe a Perú - Su viaje por Perú comienza aquí</title>
-    <!-- Google Fonts -->
+    <!-- Preconexión temprana a Google Fonts (Cormorant Garamond & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&display=swap">
+    <link rel="stylesheet" href="/src/style.css">
     <link rel="stylesheet" href="/src/experiencia.css">
     <meta name="description" content="Invitación exclusiva a la coctelería de autor de Sabe a Perú en Oviedo.">
 </head>
@@ -96,23 +95,35 @@
                 <div class="carousel-track" id="carousel-track">
                     <div class="carousel-slide">
                         <img id="exp-gallery-1"
-                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/Cocteles.png?v=2"
-                            alt="Cóctel de Autor 1" style="object-fit: cover; border-radius: 12px;">
+                            src="/assets/Cocteles.webp"
+                            alt="Cóctel de Autor 1"
+                            loading="lazy"
+                            decoding="async"
+                            style="object-fit: cover; border-radius: 2px;">
                     </div>
                     <div class="carousel-slide">
                         <img id="exp-gallery-2"
-                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria3.png"
-                            alt="Cóctel de Autor 2" style="object-fit: cover; border-radius: 12px;">
+                            src="/assets/hero3.webp"
+                            alt="Cóctel de Autor 2"
+                            loading="lazy"
+                            decoding="async"
+                            style="object-fit: cover; border-radius: 2px;">
                     </div>
                     <div class="carousel-slide">
                         <img id="exp-gallery-3"
-                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria4.png"
-                            alt="Preparación Cóctel 3" style="object-fit: cover; border-radius: 12px;">
+                            src="/assets/hero4.webp"
+                            alt="Preparación Cóctel 3"
+                            loading="lazy"
+                            decoding="async"
+                            style="object-fit: cover; border-radius: 2px;">
                     </div>
                     <div class="carousel-slide">
                         <img id="exp-gallery-4"
-                            src="https://xdslypbjmenthwyrarui.supabase.co/storage/v1/object/public/restaurante-assets/galeria7.png"
-                            alt="Experiencia 4" style="object-fit: cover; border-radius: 12px;">
+                            src="/assets/Hero1.webp"
+                            alt="Experiencia 4"
+                            loading="lazy"
+                            decoding="async"
+                            style="object-fit: cover; border-radius: 2px;">
                     </div>
                 </div>
                 <button class="carousel-btn prev-btn" aria-label="Anterior">&#10094;</button>
@@ -132,7 +143,7 @@
         <section id="reserva" class="booking-section scroll-anim"
             style="padding: 2rem 1.5rem 6rem 1.5rem; background-color: var(--bg-color); text-align: center;">
             <div class="booking-card"
-                style="max-width: 600px; margin: 0 auto; background: rgba(18,18,18,0.8); border: 1px solid var(--gold); padding: 2.5rem 1.5rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                style="max-width: 600px; margin: 0 auto; background: rgba(18,18,18,0.8); border: 1px solid var(--lux-border-gold-subtle); padding: 2.5rem 1.5rem; border-radius: 2px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
                 <h2 class="serif-title-large"
                     style="font-family: var(--font-title); font-size: 2.2rem; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
                     Asegure su experiencia.</h2>
@@ -142,16 +153,18 @@
                 <form id="reservation-form" class="modern-form"
                     style="display: flex; flex-direction: column; gap: 1.2rem; text-align: left;">
                     <div class="form-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <input type="text" name="name" placeholder="Su Nombre *" required
-                            style="flex: 1; min-width: 150px; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
-                        <input type="email" name="email" placeholder="Email *" required
-                            style="flex: 1; min-width: 150px; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                        <input type="text" name="name" placeholder="Su Nombre *" required autocomplete="name"
+                            style="flex: 1; min-width: 150px; outline: none;">
+                        <input type="email" name="email" placeholder="Email *" required autocomplete="email"
+                            style="flex: 1; min-width: 150px; outline: none;">
+                        <input type="tel" name="phone" placeholder="Teléfono WhatsApp (opcional)" autocomplete="tel"
+                            style="flex: 1; min-width: 150px; outline: none;">
                     </div>
                     <div class="form-row" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
                         <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
                             <label style="font-size: 0.8rem; color: var(--gold); opacity: 0.7;">Fecha de visita *</label>
                             <input type="date" name="date" required
-                                style="width: 100%; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; color-scheme: dark; font-family: var(--font-body); outline: none;">
+                                style="width: 100%; color-scheme: dark; outline: none;">
                         </div>
                         <div id="time-slots-container" style="flex: 1; min-height: 50px; display: flex; align-items: flex-end;">
                             <p style="font-size: 0.8rem; color: #777; font-style: italic; margin-bottom: 15px;">Elija fecha...</p>
@@ -161,21 +174,23 @@
                     <div class="form-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <div style="flex: 0.8; display: flex; flex-direction: column; gap: 5px;">
                             <label style="font-size: 0.8rem; color: var(--gold); opacity: 0.7;">Personas para la reserva *</label>
-                            <input type="number" name="people" placeholder="Ej: 2" min="1" max="20" required
-                                style="width: 100%; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                            <input type="number" name="people" id="reservation-people" placeholder="Ej: 2" min="1" max="20" value="2" required
+                                style="width: 100%; outline: none;">
                         </div>
                         <div style="flex: 1.2; display: flex; flex-direction: column; gap: 5px;">
                             <label style="font-size: 0.8rem; color: var(--gold); opacity: 0.7;">Motivo (Opcional)</label>
                             <input type="text" name="occasion" value="Cliente de Hotel" placeholder="Motivo"
-                                style="width: 100%; padding: 1.2rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(212, 175, 55, 0.3); color: white; border-radius: 4px; font-family: var(--font-body); outline: none;">
+                                style="width: 100%; outline: none;">
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary glow-btn"
+                    <div id="imperial-table-notice" class="imperial-notice" style="display:none;" role="status"><strong>Mesa Imperial:</strong> Grupos de más de 6 comensales se asignan a nuestra Mesa Imperial y requieren confirmación directa con el Maître.</div>
+                    <button type="submit" class="btn-primary glow-btn" id="btn-submit-reservation"
                         style="width: 100%; max-width: 100%; border: none; cursor: pointer; margin-top: 1rem;">SOLICITAR
                         RESERVA</button>
                     <div id="form-message" class="form-message"
                         style="margin-top: 1rem; font-size: 1rem; color: var(--gold); text-align: center;"></div>
                 </form>
+                <div id="reservation-confirmation-card" class="confirmation-card" style="display:none;"></div>
             </div>
         </section>
     </main>
@@ -216,6 +231,7 @@
         </div>
     </footer>
 
+    <div id="toast-container" class="toast-container"></div>
     <script type="module" src="/src/experiencia.ts"></script>
 </body>
 

@@ -1,11 +1,11 @@
 :root {
-    --bg-color: #121212;
-    --gold: #D4AF37;
-    --gold-hover: #e0be4d;
-    --text-primary: #F5F5F5;
-    --text-secondary: #CCCCCC;
-    --font-title: 'Playfair Display', serif;
-    --font-body: 'Montserrat', sans-serif;
+    --bg-color: var(--lux-bg-obsidian);
+    --gold: var(--lux-gold-champagne);
+    --gold-hover: var(--lux-gold-burnished);
+    --text-primary: var(--lux-text-primary);
+    --text-secondary: var(--lux-text-secondary);
+    --font-title: var(--font-serif);
+    --font-body: var(--font-sans);
 }
 
 * {
@@ -182,9 +182,9 @@ body {
     width: 100%;
     height: 450px;
     object-fit: cover;
-    border: 1px solid var(--gold);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--lux-border-gold-subtle);
+    border-radius: 2px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     cursor: pointer;
 }
@@ -273,13 +273,13 @@ body {
 
 .btn-primary.glow-btn {
     background-color: var(--gold);
-    color: #121212;
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.4);
+    color: #0b0b0b;
+    box-shadow: 0 2px 12px rgba(197, 168, 128, 0.25);
     border: 1px solid var(--gold);
 }
 
 .btn-primary.glow-btn:hover {
-    box-shadow: 0 0 25px rgba(212, 175, 55, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 18px rgba(197, 168, 128, 0.4);
     transform: translateY(-2px);
 }
 

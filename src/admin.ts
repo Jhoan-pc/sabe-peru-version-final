@@ -1,30 +1,249 @@
-
-import { db, auth, storage } from './firebase';
-import { collection, query, getDocs, addDoc, updateDoc, doc, deleteDoc, setDoc, orderBy } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import {
+    collection,
+    query,
+    getDocs,
+    addDoc,
+    updateDoc,
+    doc,
+    deleteDoc,
+    setDoc,
+    orderBy
+} from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { ref, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
+
+// ============================================================================
+// CANONICAL CONTRACTS & INTERFACES (SSOT: specs/admin-spec.md & openapi.yaml)
+// ============================================================================
+
+export const OFFICIAL_ALLERGEN_TAGS = [
+    'pescado',
+    'marisco',
+    'carne',
+    'pollo',
+    'picante',
+    'gluten-free',
+    'gluten',
+    'huevos',
+    'lacteos',
+    'soja',
+    'cacahuetes',
+    'mostaza',
+    'crustaceos',
+    'apio',
+    'moluscos',
+    'sesamo'
+] as const;
+
+export type AllergenTag = typeof OFFICIAL_ALLERGEN_TAGS[number];
+
+export interface DishItem {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    category: 'comida' | 'coctel' | 'bebida' | string;
+    subcategory?: string;
+    sort_order?: number;
+    tags?: AllergenTag[];
+    is_available: boolean;
+    image_url?: string;
+    created_at?: string;
+}
+
+export interface DishItemInput {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    subcategory: string;
+    sort_order: number;
+    tags: AllergenTag[];
+    is_available: boolean;
+    image_url: string;
+    created_at?: string;
+}
+
+export interface GalleryItem {
+    id: string;
+    image_url: string;
+    secure_url: string;
+    public_id?: string;
+    created_at: string;
+    title?: string;
+    caption_title?: string;
+    description?: string;
+    caption_desc?: string;
+}
+
+export interface ReservationAdminItem {
+    id: string;
+    customer_name?: string;
+    name?: string;
+    customer_email?: string;
+    email?: string;
+    customer_phone?: string;
+    phone?: string;
+    reservation_date?: string;
+    date?: string;
+    reservation_time?: string;
+    time?: string;
+    number_of_people?: number;
+    people?: number;
+    occasion?: string;
+    status: 'pending' | 'confirmed' | 'cancelled';
+    locator?: string;
+    created_at?: string;
+}
+
+export interface SiteContentItem {
+    key: string;
+    content: string;
+    type?: 'text' | 'html' | 'image';
+    updated_at?: string | Date;
+}
+
+export interface ProblemDetails {
+    type: string;
+    title: string;
+    status: number;
+    detail?: string;
+    instance?: string;
+    invalid_params?: Array<{ name: string; reason: string }>;
+}
+
+export interface FileValidationResult {
+    valid: boolean;
+    error?: string;
+}
+
+export interface CloudinaryUploadResponse {
+    secure_url: string;
+    public_id?: string;
+}
 
 const cloudName = 'dhvbqs2ba';
 const uploadPreset = 'sabeaperu_firm';
 
-async function uploadToCloudinary(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData
-    });
-    if (!res.ok) throw new Error('Error al subir a Cloudinary');
-    const data = await res.json();
-    return data.secure_url.replace('/upload/', '/upload/f_auto,q_auto,w_800,c_limit/');
+// ============================================================================
+// PURE CONTRACT: normalizeCloudinaryUrl
+// ============================================================================
+
+/**
+ * Normaliza determinísticamente URLs de Cloudinary inyectando transformaciones oficiales Quiet Luxury:
+ * f_auto,q_auto,w_{width},c_limit y purgando parámetros de consulta (?v=...).
+ *
+ * Invariantes formales:
+ * 1. Retorna '' si la URL es falsy o no es de tipo string.
+ * 2. Retorna la URL original si no contiene 'cloudinary.com' o no contiene '/upload/'.
+ * 3. Descarta segmentos de transformación existentes para evitar anidación/duplicación.
+ * 4. Idempotente: normalizeCloudinaryUrl(normalizeCloudinaryUrl(url)) === normalizeCloudinaryUrl(url).
+ */
+export function normalizeCloudinaryUrl(url: string | null | undefined, width = 800): string {
+    if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) {
+        return url || '';
+    }
+
+    // 1. Purgar query string (?v=...)
+    const cleanUrl = url.split('?')[0];
+
+    // 2. Localizar el punto de inyección /upload/
+    const uploadIndex = cleanUrl.indexOf('/upload/');
+    if (uploadIndex === -1) return cleanUrl;
+
+    const base = cleanUrl.substring(0, uploadIndex + 8);
+    let rest = cleanUrl.substring(uploadIndex + 8);
+
+    // 3. Descartar transformaciones previas si existen (indicadas por caracter '_')
+    const parts = rest.split('/');
+    if (parts.length > 1 && parts[0].includes('_')) {
+        parts.shift();
+        rest = parts.join('/');
+    }
+
+    // 4. Inyectar directiva oficial
+    return `${base}f_auto,q_auto,w_${width},c_limit/${rest}`;
 }
 
-let currentMode = 'create'; // or 'edit'
-let currentItemId: string | null = null;
+// ============================================================================
+// FILE VALIDATION CONTRACT (Budget: 10 MB, JPEG/PNG/WebP)
+// ============================================================================
 
-// --- UTILS ---
-function showToast(message: string, type: 'success' | 'error' = 'success') {
+export function validateUploadFile(file: File | null | undefined): FileValidationResult {
+    const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!file) {
+        return { valid: false, error: 'No se ha seleccionado ningún archivo.' };
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+        return { valid: false, error: 'El archivo excede el límite máximo de 10 MB.' };
+    }
+    if (!ALLOWED_MIME.includes(file.type)) {
+        return { valid: false, error: 'Formato no permitido. Solo JPEG, PNG o WebP.' };
+    }
+
+    return { valid: true };
+}
+
+// ============================================================================
+// TOAST & RFC 9457 NOTIFICATION ENGINE (Zero alert() calls)
+// ============================================================================
+
+export function escapeHtml(str: string): string {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+export function createProblemDetails(params: ProblemDetails): Readonly<ProblemDetails> {
+    if (!params.type || typeof params.type !== 'string') {
+        throw new Error('ProblemDetails requires a string "type" URI');
+    }
+    if (!params.title || typeof params.title !== 'string') {
+        throw new Error('ProblemDetails requires a string "title"');
+    }
+    if (typeof params.status !== 'number' || !Number.isInteger(params.status) || params.status < 400 || params.status > 599) {
+        throw new Error('ProblemDetails requires an HTTP error status code (400-599)');
+    }
+    return Object.freeze({ ...params });
+}
+
+export function renderProblemToastHtml(problem: ProblemDetails): string {
+    const icon = problem.status >= 500 ? '⚠️' : 'ℹ️';
+    const detailHtml = problem.detail
+        ? `<div class="toast-detail">${escapeHtml(problem.detail)}</div>`
+        : '';
+
+    return `<div class="toast error rfc-9457" role="alert" data-status="${problem.status}">
+        <span class="toast-icon">${icon}</span>
+        <div class="toast-content">
+            <div class="toast-title">${escapeHtml(problem.title)}</div>
+            ${detailHtml}
+        </div>
+    </div>`;
+}
+
+export function showProblemToast(problem: ProblemDetails): void {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = renderProblemToastHtml(problem).trim();
+    const toast = wrapper.firstElementChild as HTMLElement;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
+}
+
+export function showToast(message: string, type: 'success' | 'error' = 'success'): void {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
@@ -32,7 +251,7 @@ function showToast(message: string, type: 'success' | 'error' = 'success') {
     toast.className = `toast ${type}`;
     toast.innerHTML = `
         <span class="toast-icon">${type === 'success' ? '✅' : '❌'}</span>
-        <span class="toast-message">${message}</span>
+        <span class="toast-message">${escapeHtml(message)}</span>
     `;
 
     container.appendChild(toast);
@@ -43,7 +262,7 @@ function showToast(message: string, type: 'success' | 'error' = 'success') {
     }, 3000);
 }
 
-function setLoading(button: HTMLButtonElement, isLoading: boolean, text: string) {
+function setLoading(button: HTMLButtonElement, isLoading: boolean, text: string): void {
     if (isLoading) {
         button.disabled = true;
         button.dataset.originalHtml = button.innerHTML;
@@ -54,513 +273,752 @@ function setLoading(button: HTMLButtonElement, isLoading: boolean, text: string)
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // --- AUTHENTICATION ---
-    const loginScreen = document.getElementById('login-screen') as HTMLElement;
-    const dashboardScreen = document.getElementById('dashboard-screen') as HTMLElement;
-    const loginForm = document.getElementById('login-form') as HTMLFormElement;
-    const loginMessage = document.getElementById('login-message') as HTMLElement;
-    const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
+// ============================================================================
+// ALLERGEN CHIPS INTERACTION ENGINE
+// ============================================================================
 
-    // Check session
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            showDashboard();
-        } else {
-            loginScreen.style.display = 'flex';
-        }
-    });
+export function initAllergenChips(): void {
+    const container = document.getElementById('allergen-chips-container');
+    if (!container) return;
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = (document.getElementById('login-email') as HTMLInputElement).value;
-        const password = (document.getElementById('login-password') as HTMLInputElement).value;
-        const submitBtn = loginForm.querySelector('button') as HTMLButtonElement;
-
-        setLoading(submitBtn, true, 'Verificando');
-
-        let error: any = null;
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-        } catch(err) {
-            error = err;
-        }
-
-        setLoading(submitBtn, false, 'Ingresar');
-
-        if (error) {
-            loginMessage.textContent = 'Error: ' + error.message;
-            showToast('Credenciales incorrectas', 'error');
-        } else {
-            showToast('Bienvenido, Administrador');
-            showDashboard();
-        }
-    });
-
-    logoutBtn.addEventListener('click', async () => {
-        await signOut(auth);
-        window.location.reload();
-    });
-
-    function showDashboard() {
-        loginScreen.style.display = 'none';
-        dashboardScreen.style.display = 'block';
-        loadMenu();
-    }
-
-    // --- NAVIGATION ---
-    const navBtns = document.querySelectorAll('.nav-btn');
-    const views = document.querySelectorAll('.dashboard-view');
-
-    navBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
-            // Update buttons
-            navBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // Update views
-            views.forEach(v => {
-                v.classList.remove('active');
-                if (v.id === targetId) v.classList.add('active');
-            });
-
-            if (targetId === 'menu-view') loadMenu();
-            if (targetId === 'home-view') loadHomePageContent();
-            if (targetId === 'experiencia-view') loadExperienciaContent();
-            if (targetId === 'gallery-view') loadGalleryAdmin();
-            if (targetId === 'reservations-view') loadReservations();
+    let chips = container.querySelectorAll<HTMLButtonElement>('.tag-chip');
+    if (chips.length === 0) {
+        container.innerHTML = '';
+        OFFICIAL_ALLERGEN_TAGS.forEach(tag => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tag-chip';
+            btn.setAttribute('data-tag', tag);
+            btn.textContent = tag.toUpperCase();
+            container.appendChild(btn);
         });
+        chips = container.querySelectorAll<HTMLButtonElement>('.tag-chip');
+    }
+
+    chips.forEach(chip => {
+        chip.onclick = (e) => {
+            e.preventDefault();
+            chip.classList.toggle('active');
+        };
+    });
+}
+
+export function resetAllergenChips(): void {
+    const chips = document.querySelectorAll<HTMLButtonElement>('#allergen-chips-container .tag-chip');
+    chips.forEach(chip => chip.classList.remove('active'));
+}
+
+export function populateAllergenChips(tags: string[] | string = []): void {
+    resetAllergenChips();
+    const tagList: string[] = Array.isArray(tags)
+        ? tags
+        : typeof tags === 'string'
+            ? tags.split(',').map(t => t.trim().toLowerCase())
+            : [];
+
+    tagList.forEach(rawTag => {
+        const cleanTag = rawTag.toLowerCase();
+        const chip = document.querySelector<HTMLButtonElement>(`#allergen-chips-container .tag-chip[data-tag="${cleanTag}"]`);
+        if (chip) {
+            chip.classList.add('active');
+        }
+    });
+}
+
+export function getSelectedAllergenTags(): AllergenTag[] {
+    const activeChips = Array.from(document.querySelectorAll<HTMLButtonElement>('#allergen-chips-container .tag-chip.active'));
+    return activeChips
+        .map(chip => chip.getAttribute('data-tag') as AllergenTag)
+        .filter((t): t is AllergenTag => (OFFICIAL_ALLERGEN_TAGS as readonly string[]).includes(t));
+}
+
+// ============================================================================
+// CLOUDINARY DIRECT REST CLIENT
+// ============================================================================
+
+async function uploadToCloudinary(file: File): Promise<CloudinaryUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
     });
 
-
-    // --- MENU MANAGEMENT ---
-    const menuTableBody = document.getElementById('menu-table-body') as HTMLElement;
-    const addItemBtn = document.getElementById('add-item-btn') as HTMLButtonElement;
-    const searchInput = document.getElementById('search-input') as HTMLInputElement;
-    const filterCategory = document.getElementById('filter-category') as HTMLSelectElement;
-    const modal = document.getElementById('item-modal') as HTMLElement;
-    const closeModal = document.querySelector('.close-modal') as HTMLElement;
-    const itemForm = document.getElementById('item-form') as HTMLFormElement;
-
-    let allMenuItems: any[] = [];
-
-    async function loadMenu() {
-        menuTableBody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
-
-        let data: any[] = [];
-        let error: any = null;
-        try {
-            const qs = await getDocs(query(collection(db, 'menu_items'), orderBy('created_at', 'desc')));
-            data = qs.docs.map(d => ({id: d.id, ...d.data()}));
-            data.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0));
-        } catch(err) { error = err; }
-
-        if (error) {
-            console.error('Error loading menu:', error);
-            menuTableBody.innerHTML = '<tr><td colspan="5">Error al cargar datos. Contáctese con soporte.</td></tr>';
-            return;
-        }
-
-        allMenuItems = data || [];
-        filterAndRenderMenu();
+    if (!res.ok) {
+        throw new Error(`Error en Cloudinary (${res.status}): ${res.statusText}`);
     }
 
-    function filterAndRenderMenu() {
-        let filtered = [...allMenuItems];
+    const data = await res.json();
+    return {
+        secure_url: normalizeCloudinaryUrl(data.secure_url, 800),
+        public_id: data.public_id || ''
+    };
+}
 
-        if (filterCategory && filterCategory.value !== 'all') {
-            filtered = filtered.filter(item => item.category === filterCategory.value);
-        }
+// ============================================================================
+// DOM LIFECYCLE & APPLICATION INITIALIZATION
+// ============================================================================
 
-        if (searchInput && searchInput.value) {
-            const query = searchInput.value.toLowerCase();
-            filtered = filtered.filter(item =>
-                (item.name || '').toLowerCase().includes(query) ||
-                (item.description || '').toLowerCase().includes(query) ||
-                (item.subcategory || '').toLowerCase().includes(query)
-            );
-        }
+let currentMode: 'create' | 'edit' = 'create';
+let currentItemId: string | null = null;
+let currentDishBlobUrl: string | null = null;
+let currentGalleryBlobUrl: string | null = null;
 
-        renderMenuTable(filtered);
-    }
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', async () => {
+        const loginScreen = document.getElementById('login-screen') as HTMLElement | null;
+        if (!loginScreen) return; // Exit cleanly if running outside admin context
 
-    if (searchInput) searchInput.addEventListener('input', filterAndRenderMenu);
-    if (filterCategory) filterCategory.addEventListener('change', filterAndRenderMenu);
+        const dashboardScreen = document.getElementById('dashboard-screen') as HTMLElement;
+        const loginForm = document.getElementById('login-form') as HTMLFormElement;
+        const loginMessage = document.getElementById('login-message') as HTMLElement;
+        const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 
-    function renderMenuTable(items: any[]) {
-        menuTableBody.innerHTML = '';
-        items.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><strong>${item.name}</strong><br><small>${item.subcategory || ''}</small></td>
-                <td>${item.category}</td>
-                <td>S/. ${item.price}</td>
-                <td>${item.is_available ? '<span style="color:green">Disponible</span>' : '<span style="color:red">No Disp.</span>'}</td>
-                <td>
-                    <button class="btn-edit" data-id="${item.id}">Editar</button>
-                    <button class="btn-delete" data-id="${item.id}">Borrar</button>
-                </td>
-            `;
-            menuTableBody.appendChild(row);
+        // Initialize Allergen Chips
+        initAllergenChips();
+
+        // Check authentication session
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                showDashboard();
+            } else {
+                loginScreen.style.display = 'flex';
+            }
         });
 
-        // Add event listeners for dynamic buttons
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-                openEditModal(id, items.find(i => i.id === id));
-            });
-        });
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = (document.getElementById('login-email') as HTMLInputElement).value;
+            const password = (document.getElementById('login-password') as HTMLInputElement).value;
+            const submitBtn = loginForm.querySelector('button') as HTMLButtonElement;
 
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-                if (confirm('¿Seguro que quieres borrar este plato?')) {
-                    deleteItem(id);
-                }
-            });
-        });
-    }
+            setLoading(submitBtn, true, 'Verificando');
 
-    // Modal Logic
-    addItemBtn.addEventListener('click', () => {
-        openCreateModal();
-    });
-
-    closeModal.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    window.onclick = function (event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    }
-
-    function openCreateModal() {
-        currentMode = 'create';
-        currentItemId = null;
-        itemForm.reset();
-        document.getElementById('modal-title')!.textContent = 'Agregar Nuevo Plato';
-        const uploadStatus = document.getElementById('upload-status');
-        if (uploadStatus) {
-            uploadStatus.textContent = 'Deja vacío si no tiene foto.';
-            uploadStatus.style.color = 'inherit';
-        }
-        modal.style.display = 'block';
-    }
-
-    // Handle Item Image Upload
-    const itemImageFile = document.getElementById('item-image-file') as HTMLInputElement;
-    const itemImageUrl = document.getElementById('item-image-url') as HTMLInputElement;
-    const uploadStatus = document.getElementById('upload-status') as HTMLElement;
-
-    if (itemImageFile) {
-        itemImageFile.addEventListener('change', async () => {
-            if (!itemImageFile.files || itemImageFile.files.length === 0) return;
-
-            const file = itemImageFile.files[0];
-            uploadStatus.textContent = 'Subiendo imagen...';
-            uploadStatus.style.color = 'var(--color-gold)';
-
-            
-            
-
+            let authError: Error | null = null;
             try {
-                const publicUrl = await uploadToCloudinary(file);
-                itemImageUrl.value = publicUrl;
-                uploadStatus.textContent = '✅ Imagen lista para guardar.';
-                uploadStatus.style.color = 'green';
-                showToast('Imagen subida correctamente a Cloudinary');
-            } catch(uploadError: any) {
-                console.error("Error al subir:", uploadError);
-                uploadStatus.textContent = 'Error al subir la imagen.';
-                uploadStatus.style.color = 'red';
-                showToast('Error al subir la imagen', 'error');
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+                authError = err as Error;
+            }
+
+            setLoading(submitBtn, false, 'Ingresar');
+
+            if (authError) {
+                loginMessage.textContent = 'Error: ' + authError.message;
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/auth-failed',
+                    title: 'Credenciales incorrectas',
+                    status: 401,
+                    detail: authError.message
+                });
+            } else {
+                showToast('Bienvenido, Administrador');
+                showDashboard();
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.reload();
+        });
+
+        function showDashboard() {
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (dashboardScreen) dashboardScreen.style.display = 'block';
+            loadMenu();
+        }
+
+        // --- NAVIGATION ---
+        const navBtns = document.querySelectorAll<HTMLButtonElement>('.nav-btn');
+        const views = document.querySelectorAll<HTMLElement>('.dashboard-view');
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                navBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                views.forEach(v => {
+                    v.classList.remove('active');
+                    if (v.id === targetId) v.classList.add('active');
+                });
+
+                if (targetId === 'menu-view') loadMenu();
+                if (targetId === 'home-view') loadHomePageContent();
+                if (targetId === 'experiencia-view') loadExperienciaContent();
+                if (targetId === 'gallery-view') loadGalleryAdmin();
+                if (targetId === 'reservations-view') loadReservations();
+            });
+        });
+
+        // --- MENU MANAGEMENT ---
+        const menuTableBody = document.getElementById('menu-table-body') as HTMLElement;
+        const addItemBtn = document.getElementById('add-item-btn') as HTMLButtonElement;
+        const searchInput = document.getElementById('search-input') as HTMLInputElement;
+        const filterCategory = document.getElementById('filter-category') as HTMLSelectElement;
+        const modal = document.getElementById('item-modal') as HTMLElement;
+        const closeModal = document.querySelector('.close-modal') as HTMLElement;
+        const itemForm = document.getElementById('item-form') as HTMLFormElement;
+
+        let allMenuItems: DishItem[] = [];
+
+        async function loadMenu() {
+            if (!menuTableBody) return;
+            menuTableBody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+
+            let data: DishItem[] = [];
+            let error: Error | null = null;
+            try {
+                const qs = await getDocs(query(collection(db, 'menu_items'), orderBy('created_at', 'desc')));
+                data = qs.docs.map(d => ({ id: d.id, ...(d.data() as Omit<DishItem, 'id'>) }));
+                data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            } catch (err) {
+                error = err as Error;
+            }
+
+            if (error) {
+                console.error('Error loading menu:', error);
+                menuTableBody.innerHTML = '<tr><td colspan="5">Error al cargar datos. Contáctese con soporte.</td></tr>';
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/menu-fetch',
+                    title: 'Error al cargar carta',
+                    status: 500,
+                    detail: error.message
+                });
                 return;
             }
-        });
-    }
 
-    function openEditModal(id: string | null, item: any) {
-        if (!item) {
-            console.error("No se encontró el item con ID:", id);
-            return;
+            allMenuItems = data || [];
+            filterAndRenderMenu();
         }
-        currentMode = 'edit';
-        currentItemId = id;
 
-        try {
-            (document.getElementById('item-name') as HTMLInputElement).value = item.name || '';
-            (document.getElementById('item-desc') as HTMLTextAreaElement).value = item.description || '';
-            (document.getElementById('item-price') as HTMLInputElement).value = (item.price ?? 0).toString();
-            (document.getElementById('item-category') as HTMLSelectElement).value = item.category || 'comida';
-            (document.getElementById('item-sub') as HTMLInputElement).value = item.subcategory || '';
-            (document.getElementById('item-order') as HTMLInputElement).value = (item.sort_order ?? 0).toString();
+        function filterAndRenderMenu() {
+            let filtered = [...allMenuItems];
 
-            let tagsVal = '';
-            if (Array.isArray(item.tags)) {
-                tagsVal = item.tags.join(', ');
-            } else if (typeof item.tags === 'string') {
-                tagsVal = item.tags;
+            if (filterCategory && filterCategory.value !== 'all') {
+                filtered = filtered.filter(item => item.category === filterCategory.value);
             }
-            (document.getElementById('item-tags') as HTMLInputElement).value = tagsVal;
 
-            (document.getElementById('item-available') as HTMLInputElement).checked = !!item.is_available;
-            (document.getElementById('item-image-url') as HTMLInputElement).value = item.image_url || '';
+            if (searchInput && searchInput.value) {
+                const q = searchInput.value.toLowerCase();
+                filtered = filtered.filter(item =>
+                    (item.name || '').toLowerCase().includes(q) ||
+                    (item.description || '').toLowerCase().includes(q) ||
+                    (item.subcategory || '').toLowerCase().includes(q)
+                );
+            }
 
-            document.getElementById('modal-title')!.textContent = 'Editar Plato';
-            modal.style.display = 'block';
-        } catch (err) {
-            console.error("Error validando el plato:", err);
-            showToast("Error al abrir la configuración: " + (err as Error).message, 'error');
+            renderMenuTable(filtered);
         }
-    }
 
-    itemForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = itemForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+        if (searchInput) searchInput.addEventListener('input', filterAndRenderMenu);
+        if (filterCategory) filterCategory.addEventListener('change', filterAndRenderMenu);
 
-        const name = (document.getElementById('item-name') as HTMLInputElement).value;
-        const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
-        const priceStr = (document.getElementById('item-price') as HTMLInputElement).value;
-        const price = priceStr ? parseFloat(priceStr) : 0;
+        function renderMenuTable(items: DishItem[]) {
+            if (!menuTableBody) return;
+            menuTableBody.innerHTML = '';
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${escapeHtml(item.name)}</strong><br><small>${escapeHtml(item.subcategory || '')}</small></td>
+                    <td>${escapeHtml(item.category)}</td>
+                    <td>S/. ${Number(item.price).toFixed(2)}</td>
+                    <td>${item.is_available ? '<span style="color:green">Disponible</span>' : '<span style="color:red">No Disp.</span>'}</td>
+                    <td>
+                        <button class="btn-edit" data-id="${item.id}">Editar</button>
+                        <button class="btn-delete" data-id="${item.id}">Borrar</button>
+                    </td>
+                `;
+                menuTableBody.appendChild(row);
+            });
 
-        const category = (document.getElementById('item-category') as HTMLSelectElement).value;
-        const subcategory = (document.getElementById('item-sub') as HTMLInputElement).value;
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+                    openEditModal(id, items.find(i => i.id === id));
+                });
+            });
 
-        const orderStr = (document.getElementById('item-order') as HTMLInputElement).value;
-        const sort_order = orderStr ? parseInt(orderStr) : 0;
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+                    if (confirm('¿Seguro que quieres borrar este plato?')) {
+                        deleteItem(id);
+                    }
+                });
+            });
+        }
 
-        const tagsInput = (document.getElementById('item-tags') as HTMLInputElement).value;
-        const is_available = (document.getElementById('item-available') as HTMLInputElement).checked;
+        if (addItemBtn) {
+            addItemBtn.addEventListener('click', () => {
+                openCreateModal();
+            });
+        }
 
-        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                modal.style.display = 'none';
+                resetAllergenChips();
+            });
+        }
 
-        const image_url = (document.getElementById('item-image-url') as HTMLInputElement).value;
-
-        const itemData = {
-            name, description, price, category, subcategory, sort_order, tags, is_available, image_url
+        window.onclick = function (event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                resetAllergenChips();
+            }
         };
 
-        setLoading(submitBtn, true, 'Guardando');
+        function openCreateModal() {
+            currentMode = 'create';
+            currentItemId = null;
+            itemForm.reset();
+            resetAllergenChips();
 
-        let error: any = null;
-        try {
-            if (currentMode === 'create') {
-                (itemData as any)['created_at'] = new Date().toISOString();
-                await addDoc(collection(db, 'menu_items'), itemData);
-            } else {
-                await updateDoc(doc(db, 'menu_items', currentItemId!), itemData);
+            if (currentDishBlobUrl) {
+                URL.revokeObjectURL(currentDishBlobUrl);
+                currentDishBlobUrl = null;
             }
-        } catch (err) {
-            error = err;
+
+            const dishPreviewContainer = document.getElementById('dish-preview-container');
+            const dishPreviewImg = document.getElementById('preview-item-image') as HTMLImageElement | null;
+            if (dishPreviewContainer) dishPreviewContainer.style.display = 'none';
+            if (dishPreviewImg) dishPreviewImg.src = '';
+
+            const modalTitle = document.getElementById('modal-title');
+            if (modalTitle) modalTitle.textContent = 'Agregar Nuevo Plato';
+
+            const uploadStatus = document.getElementById('upload-status');
+            if (uploadStatus) {
+                uploadStatus.textContent = 'Deja vacío si no tiene foto.';
+                uploadStatus.style.color = 'inherit';
+            }
+            modal.style.display = 'block';
         }
 
-        setLoading(submitBtn, false, 'Guardar');
+        // File change handler with zero-latency preview and 10 MB guard
+        const dishFileInput = (document.getElementById('dish-image-file') || document.getElementById('item-image-file')) as HTMLInputElement | null;
+        const itemImageUrl = document.getElementById('item-image-url') as HTMLInputElement | null;
+        const uploadStatus = document.getElementById('upload-status') as HTMLElement | null;
 
-        if (error) {
-            showToast('Error al guardar: ' + error.message, 'error');
-        } else {
-            showToast(currentMode === 'create' ? 'Plato creado con éxito' : 'Plato actualizado');
-            modal.style.display = 'none';
-            loadMenu();
-        }
-    });
+        if (dishFileInput) {
+            dishFileInput.addEventListener('change', async () => {
+                if (!dishFileInput.files || dishFileInput.files.length === 0) return;
+                const file = dishFileInput.files[0];
 
-    async function deleteItem(id: string | null) {
-        if (!id) return;
-        let error: any = null; try { await deleteDoc(doc(db, 'menu_items', id)); } catch(err) { error = err; }
-        if (error) {
-            showToast('Error al borrar: ' + error.message, 'error');
-        } else {
-            showToast('Plato eliminado');
-            loadMenu();
-        }
-    }
-
-    // --- HOME PAGE CONTENT ---
-    const homeForm = document.getElementById('home-content-form') as HTMLFormElement;
-
-    async function loadHomePageContent(skipInputs = false) {
-        let data: any[] = []; let error: any = null; try { const qs = await getDocs(collection(db, 'site_content')); data = qs.docs.map(d => d.data()); } catch(err) { error = err; }
-        if (error) {
-            showToast('Error cargando contenido: ' + error.message, 'error');
-            return;
-        }
-
-        // Fill inputs and previews based on data-key
-        data.forEach(item => {
-            if (item.type === 'image') {
-                const previewImg = document.getElementById(`preview-${item.key.replace(/_/g, '-')}`) as HTMLImageElement;
-                if (previewImg) {
-                    previewImg.src = item.content;
-                    previewImg.style.display = 'block';
+                const validation = validateUploadFile(file);
+                if (!validation.valid) {
+                    showProblemToast({
+                        type: 'https://api.sabeaperu.es/errors/invalid-file',
+                        title: 'Archivo no permitido',
+                        status: 400,
+                        detail: validation.error
+                    });
+                    dishFileInput.value = '';
+                    return;
                 }
-            } else if (!skipInputs) {
-                const input = homeForm.querySelector(`[data-key="${item.key}"]`) as HTMLInputElement | HTMLTextAreaElement;
-                if (input) input.value = item.content;
-            }
-        });
-    }
 
-    // --- UNIVERSAL SECTION SAVE ---
-    async function saveSectionContent(section: HTMLElement, button: HTMLButtonElement) {
-        const inputs = section.querySelectorAll('[data-key]');
-        const imageInputs = section.querySelectorAll('input[type="file"][data-image-key]') as NodeListOf<HTMLInputElement>;
+                // Zero-latency local blob preview
+                if (currentDishBlobUrl) {
+                    URL.revokeObjectURL(currentDishBlobUrl);
+                }
+                currentDishBlobUrl = URL.createObjectURL(file);
 
-        setLoading(button, true, 'Guardando');
+                const dishPreviewContainer = document.getElementById('dish-preview-container');
+                const dishPreviewImg = document.getElementById('preview-item-image') as HTMLImageElement | null;
+                if (dishPreviewContainer && dishPreviewImg) {
+                    dishPreviewImg.src = currentDishBlobUrl;
+                    dishPreviewContainer.style.display = 'block';
+                }
 
-        try {
-            // 1. Text Content Updates - BATCH UPSERT
-            const textUpdates = Array.from(inputs).map(input => ({
-                key: input.getAttribute('data-key'),
-                content: (input as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value,
-                updated_at: new Date()
-            })).filter(update => update.key); // Ensure key exists
+                if (uploadStatus) {
+                    uploadStatus.textContent = 'Subiendo imagen a Cloudinary...';
+                    uploadStatus.style.color = 'var(--color-gold)';
+                }
 
-            if (textUpdates.length > 0) {
-                for (const update of textUpdates) { await setDoc(doc(db, 'site_content', update.key!), update, { merge: true }); }
-            }
-
-            // 2. Image Updates
-            for (const input of Array.from(imageInputs)) {
-                if (input.files && input.files.length > 0) {
-                    const file = input.files[0];
-                    const key = input.getAttribute('data-image-key');
-
-                    if (file.size > 20 * 1024 * 1024) {
-                        showToast(`La imagen "${key}" es demasiado grande.`, 'error');
-                        continue;
+                try {
+                    const uploadResult = await uploadToCloudinary(file);
+                    if (itemImageUrl) {
+                        itemImageUrl.value = uploadResult.secure_url;
                     }
-
-                    
-                    
-
-                    const publicUrl = await uploadToCloudinary(file);
-
-                    await setDoc(doc(db, 'site_content', key!), {
-                        key: key,
-                        content: publicUrl + '?v=' + Date.now(),
-                        type: 'image',
-                        updated_at: new Date().toISOString()
-                    }, { merge: true });
-                    input.value = ''; // Reset file input
+                    if (uploadStatus) {
+                        uploadStatus.textContent = '✅ Imagen lista para guardar.';
+                        uploadStatus.style.color = 'green';
+                    }
+                    showToast('Imagen subida correctamente a Cloudinary');
+                } catch (err) {
+                    const uploadError = err as Error;
+                    console.error('Error al subir:', uploadError);
+                    if (uploadStatus) {
+                        uploadStatus.textContent = 'Error al subir la imagen.';
+                        uploadStatus.style.color = 'red';
+                    }
+                    showProblemToast({
+                        type: 'https://api.sabeaperu.es/errors/cloudinary-upload',
+                        title: 'Error de subida',
+                        status: 500,
+                        detail: uploadError.message
+                    });
                 }
-            }
-
-            showToast('Sección actualizada con éxito');
-            // Reload previews WITHOUT overwriting other inputs the user might be editing
-            if (section.closest('#home-view')) loadHomePageContent(true);
-            if (section.closest('#experiencia-view')) loadExperienciaContent(true);
-
-        } catch (err: any) {
-            console.error("Error saving section:", err);
-            showToast('Error: ' + (err.message || 'Error desconocido'), 'error');
-        } finally {
-            setLoading(button, false, 'Guardar Sección');
-        }
-    }
-
-    // Attach listeners to "Guardar Sección" buttons
-    document.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (target.classList.contains('btn-save-section')) {
-            const section = target.closest('.content-group') as HTMLElement;
-            if (section) {
-                saveSectionContent(section, target as HTMLButtonElement);
-            }
-        }
-    });
-
-    homeForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = homeForm.querySelector('button[type="submit"]') as HTMLButtonElement;
-        const sections = homeForm.querySelectorAll('.content-group');
-        setLoading(submitBtn, true, 'Guardando todo');
-
-        for (const section of Array.from(sections)) {
-            const btn = section.querySelector('.btn-save-section') as HTMLButtonElement;
-            await saveSectionContent(section as HTMLElement, btn || submitBtn);
-        }
-        setLoading(submitBtn, false, 'Guardar Todo');
-    });
-
-    // --- EXPERIENCIA PAGE CONTENT ---
-    const experienciaForm = document.getElementById('experiencia-content-form') as HTMLFormElement;
-
-    async function loadExperienciaContent(skipInputs = false) {
-        let data: any[] = []; let error: any = null; try { const qs = await getDocs(collection(db, 'site_content')); data = qs.docs.map(d => d.data()).filter((item: any) => item.key && item.key.startsWith('exp_')); } catch(err) { error = err; }
-        if (error) {
-            showToast('Error cargando contenido: ' + error.message, 'error');
-            return;
-        }
-
-        // Fill inputs and previews based on data-key
-        data.forEach(item => {
-            if (item.type === 'image') {
-                const previewImg = document.getElementById(`preview-${item.key.replace(/_/g, '-')}`) as HTMLImageElement;
-                if (previewImg) {
-                    previewImg.src = item.content;
-                    previewImg.style.display = 'block';
-                }
-            } else if (!skipInputs) {
-                const input = experienciaForm.querySelector(`[data-key="${item.key}"]`) as HTMLInputElement | HTMLTextAreaElement;
-                if (input) input.value = item.content;
-            }
-        });
-    }
-
-    experienciaForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = experienciaForm.querySelector('button[type="submit"]') as HTMLButtonElement;
-        const sections = experienciaForm.querySelectorAll('.content-group');
-        setLoading(submitBtn, true, 'Guardando todo');
-
-        for (const section of Array.from(sections)) {
-            const btn = section.querySelector('.btn-save-section') as HTMLButtonElement;
-            await saveSectionContent(section as HTMLElement, btn || submitBtn);
-        }
-        setLoading(submitBtn, false, 'Guardar Todo Experiencia');
-    });
-
-
-    // --- GALLERY MANAGEMENT ---
-    const galleryAdminGrid = document.getElementById('gallery-admin-grid');
-    const galleryUploadInput = document.getElementById('gallery-upload-input') as HTMLInputElement;
-
-    async function loadGalleryAdmin() {
-        if (!galleryAdminGrid) return;
-        (galleryAdminGrid as HTMLElement).innerHTML = '<div style="grid-column: 1/-1;">Cargando Galería...</div>';
-
-        let data: any[] = []; let error: any = null; try { const listFolderRef = ref(storage, 'restaurante-assets'); const res = await listAll(listFolderRef); data = res.items; } catch(err) { error = err; }
-        if (error || !data) {
-            showToast('Error al cargar galería', 'error');
-            return;
-        }
-
-        const galleryFiles = data
-            .filter((file: any) => file.name.toLowerCase().startsWith('galeria') && !file.name.toLowerCase().includes('galeria2'))
-            .sort((a: any, b: any) => {
-                const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
-                const numB = parseInt(b.name.match(/\d+/)?.[0] || '0');
-                return numA - numB;
             });
+        }
 
-        if (galleryAdminGrid) {
-            (galleryAdminGrid as HTMLElement).innerHTML = '';
-
-            if (galleryFiles.length === 0) {
-                (galleryAdminGrid as HTMLElement).innerHTML = '<div style="grid-column: 1/-1;">No hay imágenes en la galería.</div>';
+        function openEditModal(id: string | null, item?: DishItem) {
+            if (!item) {
+                console.error('No se encontró el item con ID:', id);
                 return;
             }
+            currentMode = 'edit';
+            currentItemId = id;
+
+            try {
+                (document.getElementById('item-name') as HTMLInputElement).value = item.name || '';
+                (document.getElementById('item-desc') as HTMLTextAreaElement).value = item.description || '';
+                (document.getElementById('item-price') as HTMLInputElement).value = (item.price ?? 0).toString();
+                (document.getElementById('item-category') as HTMLSelectElement).value = item.category || 'comida';
+                (document.getElementById('item-sub') as HTMLInputElement).value = item.subcategory || '';
+                (document.getElementById('item-order') as HTMLInputElement).value = (item.sort_order ?? 0).toString();
+
+                populateAllergenChips(item.tags || []);
+
+                (document.getElementById('item-available') as HTMLInputElement).checked = !!item.is_available;
+                if (itemImageUrl) itemImageUrl.value = item.image_url || '';
+
+                const dishPreviewContainer = document.getElementById('dish-preview-container');
+                const dishPreviewImg = document.getElementById('preview-item-image') as HTMLImageElement | null;
+                if (item.image_url && dishPreviewContainer && dishPreviewImg) {
+                    dishPreviewImg.src = normalizeCloudinaryUrl(item.image_url, 400);
+                    dishPreviewContainer.style.display = 'block';
+                } else if (dishPreviewContainer) {
+                    dishPreviewContainer.style.display = 'none';
+                }
+
+                const modalTitle = document.getElementById('modal-title');
+                if (modalTitle) modalTitle.textContent = 'Editar Plato';
+                modal.style.display = 'block';
+            } catch (err) {
+                const error = err as Error;
+                console.error('Error abriendo plato:', error);
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/modal-open',
+                    title: 'Error al abrir plato',
+                    status: 500,
+                    detail: error.message
+                });
+            }
         }
 
-        for (const file of galleryFiles) {
+        itemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = itemForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+            const name = (document.getElementById('item-name') as HTMLInputElement).value;
+            const description = (document.getElementById('item-desc') as HTMLTextAreaElement).value;
+            const priceStr = (document.getElementById('item-price') as HTMLInputElement).value;
+            const price = priceStr ? parseFloat(priceStr) : 0;
+
+            const category = (document.getElementById('item-category') as HTMLSelectElement).value;
+            const subcategory = (document.getElementById('item-sub') as HTMLInputElement).value;
+
+            const orderStr = (document.getElementById('item-order') as HTMLInputElement).value;
+            const sort_order = orderStr ? parseInt(orderStr, 10) : 0;
+
+            const tags = getSelectedAllergenTags();
+            const is_available = (document.getElementById('item-available') as HTMLInputElement).checked;
+            const image_url = itemImageUrl ? itemImageUrl.value : '';
+
+            const itemData: DishItemInput = {
+                name,
+                description,
+                price,
+                category,
+                subcategory,
+                sort_order,
+                tags,
+                is_available,
+                image_url
+            };
+
+            setLoading(submitBtn, true, 'Guardando');
+
+            let saveError: Error | null = null;
             try {
-                const fileUrl = await getDownloadURL(file);
-                const isVideo = file.name.endsWith('.mp4');
+                if (currentMode === 'create') {
+                    itemData.created_at = new Date().toISOString();
+                    await addDoc(collection(db, 'menu_items'), itemData);
+                } else if (currentItemId) {
+                    await updateDoc(doc(db, 'menu_items', currentItemId), { ...itemData });
+                }
+            } catch (err) {
+                saveError = err as Error;
+            }
+
+            setLoading(submitBtn, false, 'Guardar');
+
+            if (saveError) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/menu-save',
+                    title: 'Error al guardar plato',
+                    status: 500,
+                    detail: saveError.message
+                });
+            } else {
+                showToast(currentMode === 'create' ? 'Plato creado con éxito' : 'Plato actualizado');
+                modal.style.display = 'none';
+                resetAllergenChips();
+                loadMenu();
+            }
+        });
+
+        async function deleteItem(id: string | null) {
+            if (!id) return;
+            let delError: Error | null = null;
+            try {
+                await deleteDoc(doc(db, 'menu_items', id));
+            } catch (err) {
+                delError = err as Error;
+            }
+
+            if (delError) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/menu-delete',
+                    title: 'Error al borrar plato',
+                    status: 500,
+                    detail: delError.message
+                });
+            } else {
+                showToast('Plato eliminado');
+                loadMenu();
+            }
+        }
+
+        // --- HOME PAGE CONTENT ---
+        const homeForm = document.getElementById('home-content-form') as HTMLFormElement;
+
+        async function loadHomePageContent(skipInputs = false) {
+            let data: SiteContentItem[] = [];
+            let error: Error | null = null;
+            try {
+                const qs = await getDocs(collection(db, 'site_content'));
+                data = qs.docs.map(d => d.data() as SiteContentItem);
+            } catch (err) {
+                error = err as Error;
+            }
+
+            if (error) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/content-fetch',
+                    title: 'Error al cargar contenido',
+                    status: 500,
+                    detail: error.message
+                });
+                return;
+            }
+
+            data.forEach(item => {
+                if (item.type === 'image') {
+                    const previewImg = document.getElementById(`preview-${item.key.replace(/_/g, '-')}`) as HTMLImageElement;
+                    if (previewImg) {
+                        previewImg.src = normalizeCloudinaryUrl(item.content, 400);
+                        previewImg.style.display = 'block';
+                    }
+                } else if (!skipInputs && homeForm) {
+                    const input = homeForm.querySelector(`[data-key="${item.key}"]`) as HTMLInputElement | HTMLTextAreaElement;
+                    if (input) input.value = item.content;
+                }
+            });
+        }
+
+        async function saveSectionContent(section: HTMLElement, button: HTMLButtonElement) {
+            const inputs = section.querySelectorAll('[data-key]');
+            const imageInputs = section.querySelectorAll('input[type="file"][data-image-key]') as NodeListOf<HTMLInputElement>;
+
+            setLoading(button, true, 'Guardando');
+
+            try {
+                const textUpdates = Array.from(inputs).map(input => ({
+                    key: input.getAttribute('data-key'),
+                    content: (input as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value,
+                    updated_at: new Date().toISOString()
+                })).filter(update => update.key);
+
+                if (textUpdates.length > 0) {
+                    for (const update of textUpdates) {
+                        await setDoc(doc(db, 'site_content', update.key!), update, { merge: true });
+                    }
+                }
+
+                for (const input of Array.from(imageInputs)) {
+                    if (input.files && input.files.length > 0) {
+                        const file = input.files[0];
+                        const key = input.getAttribute('data-image-key');
+
+                        const val = validateUploadFile(file);
+                        if (!val.valid) {
+                            showProblemToast({
+                                type: 'https://api.sabeaperu.es/errors/invalid-file',
+                                title: `Archivo inválido: ${key}`,
+                                status: 400,
+                                detail: val.error
+                            });
+                            continue;
+                        }
+
+                        const uploadRes = await uploadToCloudinary(file);
+                        const cleanUrl = normalizeCloudinaryUrl(uploadRes.secure_url, 1200);
+
+                        await setDoc(doc(db, 'site_content', key!), {
+                            key: key,
+                            content: cleanUrl,
+                            type: 'image',
+                            updated_at: new Date().toISOString()
+                        }, { merge: true });
+
+                        input.value = '';
+                    }
+                }
+
+                showToast('Sección actualizada con éxito');
+                if (section.closest('#home-view')) loadHomePageContent(true);
+                if (section.closest('#experiencia-view')) loadExperienciaContent(true);
+
+            } catch (err) {
+                const error = err as Error;
+                console.error('Error saving section:', error);
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/section-save',
+                    title: 'Error al guardar sección',
+                    status: 500,
+                    detail: error.message
+                });
+            } finally {
+                setLoading(button, false, 'Guardar Sección');
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            if (target.classList.contains('btn-save-section')) {
+                const section = target.closest('.content-group') as HTMLElement;
+                if (section) {
+                    saveSectionContent(section, target as HTMLButtonElement);
+                }
+            }
+        });
+
+        if (homeForm) {
+            homeForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = homeForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+                const sections = homeForm.querySelectorAll('.content-group');
+                setLoading(submitBtn, true, 'Guardando todo');
+
+                for (const section of Array.from(sections)) {
+                    const btn = section.querySelector('.btn-save-section') as HTMLButtonElement;
+                    await saveSectionContent(section as HTMLElement, btn || submitBtn);
+                }
+                setLoading(submitBtn, false, 'Guardar Todo');
+            });
+        }
+
+        // --- EXPERIENCIA PAGE CONTENT ---
+        const experienciaForm = document.getElementById('experiencia-content-form') as HTMLFormElement;
+
+        async function loadExperienciaContent(skipInputs = false) {
+            let data: SiteContentItem[] = [];
+            let error: Error | null = null;
+            try {
+                const qs = await getDocs(collection(db, 'site_content'));
+                data = qs.docs.map(d => d.data() as SiteContentItem).filter(item => item.key && item.key.startsWith('exp_'));
+            } catch (err) {
+                error = err as Error;
+            }
+
+            if (error) {
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/content-fetch',
+                    title: 'Error al cargar experiencia',
+                    status: 500,
+                    detail: error.message
+                });
+                return;
+            }
+
+            data.forEach(item => {
+                if (item.type === 'image') {
+                    const previewImg = document.getElementById(`preview-${item.key.replace(/_/g, '-')}`) as HTMLImageElement;
+                    if (previewImg) {
+                        previewImg.src = normalizeCloudinaryUrl(item.content, 400);
+                        previewImg.style.display = 'block';
+                    }
+                } else if (!skipInputs && experienciaForm) {
+                    const input = experienciaForm.querySelector(`[data-key="${item.key}"]`) as HTMLInputElement | HTMLTextAreaElement;
+                    if (input) input.value = item.content;
+                }
+            });
+        }
+
+        if (experienciaForm) {
+            experienciaForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = experienciaForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+                const sections = experienciaForm.querySelectorAll('.content-group');
+                setLoading(submitBtn, true, 'Guardando todo');
+
+                for (const section of Array.from(sections)) {
+                    const btn = section.querySelector('.btn-save-section') as HTMLButtonElement;
+                    await saveSectionContent(section as HTMLElement, btn || submitBtn);
+                }
+                setLoading(submitBtn, false, 'Guardar Todo Experiencia');
+            });
+        }
+
+        // ====================================================================
+        // GALLERY MANAGEMENT (Firestore gallery_items SSOT, Zero Storage)
+        // ====================================================================
+        const galleryAdminGrid = document.getElementById('gallery-admin-grid');
+        const galleryFileInput = (document.getElementById('gallery-image-file') || document.getElementById('gallery-upload-input')) as HTMLInputElement | null;
+
+        async function loadGalleryAdmin() {
+            if (!galleryAdminGrid) return;
+            galleryAdminGrid.innerHTML = '<div style="grid-column: 1/-1;">Cargando Galería...</div>';
+
+            let data: GalleryItem[] = [];
+            let fetchError: Error | null = null;
+            try {
+                const q = query(collection(db, 'gallery_items'), orderBy('created_at', 'desc'));
+                const qs = await getDocs(q);
+                data = qs.docs.map(d => ({
+                    id: d.id,
+                    ...(d.data() as Omit<GalleryItem, 'id'>)
+                }));
+            } catch (err) {
+                fetchError = err as Error;
+            }
+
+            if (fetchError) {
+                console.error('Error al cargar galería:', fetchError);
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/gallery-fetch',
+                    title: 'Error al cargar galería',
+                    status: 500,
+                    detail: fetchError.message
+                });
+                galleryAdminGrid.innerHTML = '<div style="grid-column: 1/-1; color:red;">Error al cargar galería.</div>';
+                return;
+            }
+
+            galleryAdminGrid.innerHTML = '';
+            if (data.length === 0) {
+                galleryAdminGrid.innerHTML = '<div style="grid-column: 1/-1;">No hay imágenes en la galería.</div>';
+                return;
+            }
+
+            for (const item of data) {
+                const mediaUrl = normalizeCloudinaryUrl(item.image_url || item.secure_url, 400);
+                const isVideo = mediaUrl.endsWith('.mp4');
                 const card = document.createElement('div');
                 card.style.background = 'white';
                 card.style.padding = '10px';
@@ -570,89 +1028,278 @@ document.addEventListener('DOMContentLoaded', async () => {
                 card.style.flexDirection = 'column';
 
                 const media = isVideo
-                    ? `<video src="${fileUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;" muted></video>`
-                    : `<img src="${fileUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;">`;
+                    ? `<video src="${mediaUrl}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;" muted></video>`
+                    : `<img src="${mediaUrl}" alt="${escapeHtml(item.title || item.caption_title || 'Foto de Galería')}" style="width:100%; height:150px; object-fit:cover; border-radius:4px;">`;
+
+                const titleLabel = item.title || item.caption_title || 'Imagen';
 
                 card.innerHTML = `
                     ${media}
-                    <div style="margin-top: 10px; text-align:right;">
-                        <button class="btn-delete-gallery" data-filename="${file.name}" style="background:#f44336; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Borrar</button>
+                    <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:12px; color:#555; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;">${escapeHtml(titleLabel)}</span>
+                        <button class="btn-delete-gallery" data-id="${item.id}" style="background:#f44336; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Borrar</button>
                     </div>
                 `;
-                if (galleryAdminGrid) galleryAdminGrid.appendChild(card);
-            } catch (err) {
-                console.error(err);
+                galleryAdminGrid.appendChild(card);
             }
+
+            galleryAdminGrid.querySelectorAll<HTMLButtonElement>('.btn-delete-gallery').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+                    if (!id) return;
+                    if (confirm('¿Seguro que deseas eliminar esta imagen de la galería?')) {
+                        try {
+                            await deleteDoc(doc(db, 'gallery_items', id));
+                            showToast('Imagen eliminada de la galería');
+                            loadGalleryAdmin();
+                        } catch (err) {
+                            const delError = err as Error;
+                            showProblemToast({
+                                type: 'https://api.sabeaperu.es/errors/gallery-delete',
+                                title: 'Error al eliminar imagen',
+                                status: 500,
+                                detail: delError.message
+                            });
+                        }
+                    }
+                });
+            });
         }
 
-        document.querySelectorAll('.btn-delete-gallery').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const fileName = (e.currentTarget as HTMLElement).getAttribute('data-filename');
-                if (confirm(`¿Seguro que quieres borrar ${fileName}?`)) {
-                    if (fileName) {
-                        let error: any = null; try { await deleteObject(ref(storage, 'restaurante-assets/' + fileName)); } catch(err) { error = err; }
-                        if (error) {
-                            showToast('Error al borrar', 'error');
-                        } else {
-                            showToast('Imagen borrada');
-                            loadGalleryAdmin();
+        if (galleryFileInput) {
+            galleryFileInput.addEventListener('change', async () => {
+                const files = galleryFileInput.files;
+                if (!files || files.length === 0) return;
+
+                const firstFile = files[0];
+                const validation = validateUploadFile(firstFile);
+                if (!validation.valid) {
+                    showProblemToast({
+                        type: 'https://api.sabeaperu.es/errors/invalid-file',
+                        title: 'Archivo no permitido',
+                        status: 400,
+                        detail: validation.error
+                    });
+                    galleryFileInput.value = '';
+                    return;
+                }
+
+                // Zero-latency local blob preview
+                if (currentGalleryBlobUrl) {
+                    URL.revokeObjectURL(currentGalleryBlobUrl);
+                }
+                currentGalleryBlobUrl = URL.createObjectURL(firstFile);
+
+                const galleryPreviewBox = document.getElementById('gallery-preview-container');
+                const galleryPreviewImg = document.getElementById('preview-gallery-image') as HTMLImageElement | null;
+                if (galleryPreviewBox && galleryPreviewImg) {
+                    galleryPreviewImg.src = currentGalleryBlobUrl;
+                    galleryPreviewBox.style.display = 'block';
+                }
+
+                showToast('Subiendo imágenes a Cloudinary...');
+
+                try {
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const fileVal = validateUploadFile(file);
+                        if (!fileVal.valid) {
+                            showProblemToast({
+                                type: 'https://api.sabeaperu.es/errors/invalid-file',
+                                title: 'Archivo omitido',
+                                status: 400,
+                                detail: `${file.name}: ${fileVal.error}`
+                            });
+                            continue;
                         }
+
+                        const uploadResult = await uploadToCloudinary(file);
+                        const normalizedUrl = normalizeCloudinaryUrl(uploadResult.secure_url, 800);
+
+                        const docPayload = {
+                            image_url: normalizedUrl,
+                            secure_url: normalizedUrl,
+                            public_id: uploadResult.public_id || '',
+                            created_at: new Date().toISOString(),
+                            title: file.name.replace(/\.[^/.]+$/, ''),
+                            caption_title: file.name.replace(/\.[^/.]+$/, ''),
+                            description: '',
+                            caption_desc: ''
+                        };
+
+                        await addDoc(collection(db, 'gallery_items'), docPayload);
+                    }
+
+                    showToast('Imágenes subidas con éxito');
+                    galleryFileInput.value = '';
+                    loadGalleryAdmin();
+                } catch (err) {
+                    const uploadErr = err as Error;
+                    console.error('Error al subir a galería:', uploadErr);
+                    showProblemToast({
+                        type: 'https://api.sabeaperu.es/errors/gallery-upload',
+                        title: 'Error de subida',
+                        status: 500,
+                        detail: uploadErr.message
+                    });
+                } finally {
+                    if (currentGalleryBlobUrl) {
+                        URL.revokeObjectURL(currentGalleryBlobUrl);
+                        currentGalleryBlobUrl = null;
+                    }
+                    if (galleryPreviewBox) {
+                        galleryPreviewBox.style.display = 'none';
                     }
                 }
             });
-        });
-    }
-
-    if (galleryUploadInput) {
-        galleryUploadInput.addEventListener('change', async () => {
-            const files = galleryUploadInput.files;
-            if (!files || files.length === 0) return;
-
-            showToast('Subiendo imágenes...');
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
-                
-                
-
-                await uploadToCloudinary(file);
-            }
-
-            showToast('Imágenes subidas con éxito');
-            galleryUploadInput.value = '';
-            loadGalleryAdmin();
-        });
-    }
-
-
-    // --- RESERVATIONS ---
-    const reservationsTableBody = document.getElementById('reservations-table-body') as HTMLElement;
-
-    async function loadReservations() {
-        reservationsTableBody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
-
-        let data: any[] = []; let error: any = null; try { const qs = await getDocs(query(collection(db, 'reservations'), orderBy('created_at', 'desc'))); data = qs.docs.map(d => d.data()); } catch(err) { error = err; }
-
-        if (error) {
-            console.error('Error reservations:', error);
-            reservationsTableBody.innerHTML = '<tr><td colspan="6">Error al cargar datos.</td></tr>';
-            return;
         }
 
-        reservationsTableBody.innerHTML = '';
-        (data || []).forEach((res: any) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${res.reservation_date}</td>
-                <td>${res.reservation_time || '-'}</td>
-                <td>${res.customer_name}</td>
-                <td>${res.number_of_people}</td>
-                <td>${res.customer_email}</td>
-                <td>${res.occasion || '-'}</td>
-            `;
-            reservationsTableBody.appendChild(row);
-        });
-    }
+        // ====================================================================
+        // RESERVATIONS OPERATIONAL HUB & STATUS MANAGEMENT
+        // ====================================================================
+        const reservationsTableBody = document.getElementById('reservations-table-body') as HTMLElement | null;
+        type ReservationTab = 'pending' | 'today' | 'all';
+        let currentReservationTab: ReservationTab = 'pending';
+        let reservationsCache: ReservationAdminItem[] = [];
 
-});
+        function renderFilteredReservations() {
+            if (!reservationsTableBody) return;
+            reservationsTableBody.innerHTML = '';
+
+            const todayIso = new Date().toISOString().split('T')[0];
+            const filtered = reservationsCache.filter(res => {
+                const resDate = res.reservation_date || res.date || '';
+                const resStatus = res.status || 'pending';
+                if (currentReservationTab === 'pending') {
+                    return resStatus === 'pending';
+                }
+                if (currentReservationTab === 'today') {
+                    return resDate === todayIso;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                reservationsTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#888;">No hay reservas para este filtro.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(res => {
+                const rawPhone = res.customer_phone || res.phone || '';
+                const cleanPhone = rawPhone.replace(/\D/g, '') || '34662125650';
+                const clientName = res.customer_name || res.name || 'Cliente';
+                const locator = res.locator || 'SP-0000';
+                const msg = `Hola ${clientName}, le escribimos de Sabe a Perú respecto a su reserva ${locator}.`;
+                const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+
+                const statusClass = `status-${res.status || 'pending'}`;
+                const statusLabel = res.status === 'confirmed' ? 'Confirmada' : (res.status === 'cancelled' ? 'Cancelada' : 'Pendiente');
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${escapeHtml(locator)}</strong></td>
+                    <td>${escapeHtml(res.reservation_date || res.date || '-')}</td>
+                    <td>${escapeHtml(res.reservation_time || res.time || '-')}</td>
+                    <td>${res.number_of_people || res.people || '-'}</td>
+                    <td>${escapeHtml(clientName)}</td>
+                    <td>${escapeHtml(rawPhone || '-')}</td>
+                    <td><span class="res-status-badge ${statusClass}">${statusLabel}</span></td>
+                    <td>
+                        <div class="reservation-actions">
+                            <button type="button" class="btn-confirm-res" data-id="${res.id}" ${res.status === 'confirmed' ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>Confirmar</button>
+                            <button type="button" class="btn-cancel-res" data-id="${res.id}" ${res.status === 'cancelled' ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>Cancelar</button>
+                            <a class="btn-wa-client" href="${waLink}" target="_blank" rel="noopener" data-id="${res.id}" data-phone="${cleanPhone}" data-name="${escapeHtml(clientName)}" data-locator="${escapeHtml(locator)}">WhatsApp</a>
+                        </div>
+                    </td>
+                `;
+                reservationsTableBody.appendChild(row);
+            });
+
+            // Action: Confirm reservation
+            reservationsTableBody.querySelectorAll<HTMLButtonElement>('.btn-confirm-res').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+                    if (!id) return;
+                    try {
+                        await updateDoc(doc(db, 'reservations', id), { status: 'confirmed' });
+                        showToast('Reserva confirmada con éxito');
+                        loadReservations();
+                    } catch (err) {
+                        const error = err as Error;
+                        showProblemToast({
+                            type: 'https://api.sabeaperu.es/errors/reservation-mutation',
+                            title: 'Error al actualizar reserva',
+                            status: 500,
+                            detail: error.message
+                        });
+                    }
+                });
+            });
+
+            // Action: Cancel reservation with user confirmation dialog
+            reservationsTableBody.querySelectorAll<HTMLButtonElement>('.btn-cancel-res').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+                    if (!id) return;
+                    if (confirm('¿Desea cancelar esta reserva y liberar el cupo?')) {
+                        try {
+                            await updateDoc(doc(db, 'reservations', id), { status: 'cancelled' });
+                            showToast('Reserva cancelada con éxito');
+                            loadReservations();
+                        } catch (err) {
+                            const error = err as Error;
+                            showProblemToast({
+                                type: 'https://api.sabeaperu.es/errors/reservation-mutation',
+                                title: 'Error al actualizar reserva',
+                                status: 500,
+                                detail: error.message
+                            });
+                        }
+                    }
+                });
+            });
+        }
+
+        async function loadReservations() {
+            if (!reservationsTableBody) return;
+            reservationsTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Cargando Reservas...</td></tr>';
+
+            let fetchError: Error | null = null;
+            try {
+                const qs = await getDocs(query(collection(db, 'reservations'), orderBy('created_at', 'desc')));
+                reservationsCache = qs.docs.map(d => ({
+                    id: d.id,
+                    ...(d.data() as Omit<ReservationAdminItem, 'id'>)
+                }));
+            } catch (err) {
+                fetchError = err as Error;
+            }
+
+            if (fetchError) {
+                console.error('Error reservations:', fetchError);
+                reservationsTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red; padding:20px;">Error al cargar datos.</td></tr>';
+                showProblemToast({
+                    type: 'https://api.sabeaperu.es/errors/reservation-fetch',
+                    title: 'Error al cargar reservas',
+                    status: 500,
+                    detail: fetchError.message
+                });
+                return;
+            }
+
+            renderFilteredReservations();
+        }
+
+        // Reservation Filter Tabs
+        const reservationTabs = document.querySelectorAll<HTMLButtonElement>('#reservations-tabs .tab-btn');
+        reservationTabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                reservationTabs.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const filterAttr = (btn.getAttribute('data-filter') || btn.getAttribute('data-tab') || 'pending') as ReservationTab;
+                currentReservationTab = filterAttr;
+                renderFilteredReservations();
+            });
+        });
+    });
+}

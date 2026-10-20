@@ -1,0 +1,563 @@
+openapi: 3.1.0
+info:
+  title: API Sabe a Perú - Especificación y Contratos Formales (SDD)
+  version: 1.1.0
+  description: >-
+    Contrato formal único (SSOT) para el restaurante de alta cocina Sabe a Perú.
+    Define las operaciones de reservas, carta digital, gestión de contenidos y multimedia,
+    incorporando las reglas de negocio, validaciones estrictas y el estándar de diseño de ultra-lujo.
+servers:
+  - url: https://api.sabeaperu.es/v1
+    description: Servidor de producción / Gateway
+  - url: http://localhost:5173/api/v1
+    description: Servidor mock / Desarrollo local
+
+paths:
+  /reservations/availability:
+    get:
+      summary: Consultar franjas horarias y disponibilidad de mesas
+      description: >-
+        Devuelve todas las franjas horarias de 30 minutos del día solicitado según
+        la matriz KITCHEN_HOURS, indicando si cuenta con capacidad disponible (< 4 reservas concurrentes).
+      operationId: getAvailableSlots
+      parameters:
+        - name: date
+          in: query
+          required: true
+          description: Fecha a consultar en formato ISO (no puede ser en el pasado)
+          schema:
+            type: string
+            format: date
+            example: "2026-11-20"
+      responses:
+        '200':
+          description: Lista de franjas horarias calculadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReservationSlot'
+        '400':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+
+  /reservations:
+    post:
+      summary: Crear solicitud de reserva
+      description: >-
+        Registra una solicitud de reserva en estado 'pending'.
+        En el frontend, tras recibir la confirmación 201, se construye la URL de WhatsApp
+        para la confirmación humana con el restaurante.
+      operationId: createReservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationInput'
+      responses:
+        '201':
+          description: Reserva creada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationOutput'
+        '422':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+
+  /menu:
+    get:
+      summary: Obtener carta pública filtrada
+      description: >-
+        Retorna la lista de platos y bebidas disponibles (is_available == true),
+        ordenados ascendentemente por sort_order.
+      operationId: getPublicMenu
+      parameters:
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [comida, coctel, bebida]
+            example: "comida"
+        - name: tag
+          in: query
+          required: false
+          description: Filtro opcional por alérgeno o tipo de ingrediente
+          schema:
+            $ref: '#/components/schemas/AllergenTag'
+      responses:
+        '200':
+          description: Lista de platos disponibles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MenuItemOutput'
+
+  /site-content:
+    get:
+      summary: Obtener contenidos dinámicos del CMS
+      description: Textos de contacto, horarios, redes sociales y textos de experiencia.
+      operationId: getSiteContent
+      responses:
+        '200':
+          description: Lista de pares clave-contenido
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SiteContentItem'
+
+  /media/upload:
+    post:
+      summary: Subir y optimizar imagen a Cloudinary
+      description: >-
+        Carga una imagen en CDN Cloudinary y devuelve la URL procesada con transformaciones
+        automáticas de alta gama (f_auto, q_auto, w_800, c_limit).
+      operationId: uploadMedia
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, upload_preset]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo de imagen (JPEG, PNG, WebP). Máx 20MB.
+                upload_preset:
+                  type: string
+                  example: "sabeaperu_firm"
+      responses:
+        '200':
+          description: Imagen optimizada en Cloudinary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secure_url:
+                    type: string
+                    format: uri
+
+  /gallery:
+    get:
+      summary: Obtener elementos de la galería pública
+      description: >-
+        Retorna la lista de fotografías de alta calidad optimizadas en Cloudinary,
+        con degradación elegante a assets locales en caso de desconexión.
+      operationId: getGalleryItems
+      responses:
+        '200':
+          description: Lista de imágenes de galería
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GalleryItem'
+
+  /admin/reservations/{id}/status:
+    patch:
+      summary: Actualizar estado de una reserva (Administración)
+      description: Permite al maitre o administrador confirmar o cancelar una reserva.
+      operationId: updateReservationStatus
+      security:
+        - FirebaseAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationStatusUpdate'
+      responses:
+        '200':
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationOutput'
+        '401':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '404':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+
+  /admin/menu:
+    post:
+      summary: Crear nuevo plato o bebida (Administración)
+      operationId: createMenuItem
+      security:
+        - FirebaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemInput'
+      responses:
+        '201':
+          description: Plato creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItemOutput'
+        '401':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+
+  /admin/menu/{id}:
+    put:
+      summary: Modificar plato o bebida existente (Administración)
+      operationId: updateMenuItem
+      security:
+        - FirebaseAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemInput'
+      responses:
+        '200':
+          description: Plato actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItemOutput'
+        '401':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+    delete:
+      summary: Eliminar plato o bebida (Administración)
+      operationId: deleteMenuItem
+      security:
+        - FirebaseAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Plato eliminado con éxito
+        '401':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+
+  /admin/gallery:
+    post:
+      summary: Registrar nueva foto en galería (Administración)
+      operationId: addGalleryItem
+      security:
+        - FirebaseAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GalleryItemInput'
+      responses:
+        '201':
+          description: Foto registrada en galería
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryItem'
+
+  /admin/gallery/{id}:
+    delete:
+      summary: Eliminar foto de galería (Administración)
+      operationId: deleteGalleryItem
+      security:
+        - FirebaseAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Foto eliminada con éxito
+
+components:
+  securitySchemes:
+    FirebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de autenticación de Google Firebase Auth (Admin Role)
+  responses:
+    ProblemDetailsResponse:
+      description: Error estándar RFC 9457 / RFC 7807
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+  schemas:
+    ReservationSlot:
+      type: object
+      required: [time, available]
+      properties:
+        time:
+          type: string
+          pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'
+          example: "14:00"
+        available:
+          type: boolean
+          example: true
+        reason:
+          type: string
+          nullable: true
+          example: "Completo"
+
+    ReservationInput:
+      type: object
+      required:
+        - customer_name
+        - customer_email
+        - reservation_date
+        - reservation_time
+        - number_of_people
+      properties:
+        customer_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Alejandro Valenzuela"
+        customer_email:
+          type: string
+          format: email
+          example: "alejandro@ejemplo.com"
+        reservation_date:
+          type: string
+          format: date
+          example: "2026-11-20"
+        reservation_time:
+          type: string
+          pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'
+          example: "21:00"
+        number_of_people:
+          type: integer
+          minimum: 1
+          maximum: 20
+          example: 4
+        occasion:
+          type: string
+          nullable: true
+          maxLength: 200
+          example: "Cena de aniversario"
+
+    ReservationOutput:
+      allOf:
+        - $ref: '#/components/schemas/ReservationInput'
+        - type: object
+          required: [id, status, created_at]
+          properties:
+            id:
+              type: string
+              example: "res_8492048fjs"
+            status:
+              type: string
+              enum: [pending, confirmed, cancelled]
+              example: "pending"
+            created_at:
+              type: string
+              format: date-time
+
+    MenuItemOutput:
+      type: object
+      required: [id, name, price, category, subcategory, sort_order, is_available]
+      properties:
+        id:
+          type: string
+          example: "item_9348fjw"
+        name:
+          type: string
+          example: "Ceviche Clásico de Corvina"
+        description:
+          type: string
+          example: "Finos cortes de corvina fresca del Cantábrico marinados en leche de tigre y ají limo..."
+        price:
+          type: number
+          minimum: 0
+          example: 24.50
+        category:
+          type: string
+          enum: [comida, coctel, bebida]
+        subcategory:
+          type: string
+          example: "CEVICHES Y TIRADITOS"
+        sort_order:
+          type: integer
+          minimum: 0
+          example: 1
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllergenTag'
+        is_available:
+          type: boolean
+          example: true
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+
+    AllergenTag:
+      type: string
+      enum:
+        - pescado
+        - marisco
+        - carne
+        - pollo
+        - picante
+        - gluten-free
+        - gluten
+        - huevos
+        - lacteos
+        - soja
+        - cacahuetes
+        - mostaza
+        - crustaceos
+        - apio
+        - moluscos
+        - sesamo
+
+    SiteContentItem:
+      type: object
+      required: [key, content]
+      properties:
+        key:
+          type: string
+          example: "contact_whatsapp"
+        content:
+          type: string
+          example: "34662125650"
+        type:
+          type: string
+          enum: [text, html, image]
+          default: text
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://api.sabeaperu.es/errors/slot-full"
+        title:
+          type: string
+          example: "Franja horaria no disponible"
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: "La franja seleccionada ha alcanzado el límite máximo de comensales."
+        instance:
+          type: string
+          example: "/reservations/availability?date=2026-11-20"
+        invalid_params:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              reason:
+                type: string
+
+    MenuItemInput:
+      type: object
+      required: [name, price, category, subcategory]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+        price:
+          type: number
+          minimum: 0
+        category:
+          type: string
+          enum: [comida, coctel, bebida]
+        subcategory:
+          type: string
+        sort_order:
+          type: integer
+          default: 0
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllergenTag'
+        is_available:
+          type: boolean
+          default: true
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+
+    ReservationStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled]
+
+    GalleryItem:
+      type: object
+      required: [id, secure_url, created_at]
+      properties:
+        id:
+          type: string
+        public_id:
+          type: string
+        secure_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        caption_title:
+          type: string
+          nullable: true
+        caption_desc:
+          type: string
+          nullable: true
+
+    GalleryItemInput:
+      type: object
+      required: [secure_url]
+      properties:
+        public_id:
+          type: string
+        secure_url:
+          type: string
+          format: uri
+        caption_title:
+          type: string
+        caption_desc:
+          type: string

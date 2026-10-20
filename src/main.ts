@@ -1,10 +1,162 @@
-// Main.ts - Logic restored to classic Grid Layout
-import { db, storage } from './firebase';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { ref, listAll, getDownloadURL, getMetadata } from 'firebase/storage';
-import { initReservationUI } from './reservations';
+import { db } from './firebase';
+import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore';
+import {
+  initReservationUI,
+  validateGuestCount,
+  checkSlotAvailabilityAtSubmit,
+  generateReservationLocator,
+  buildWhatsAppReservationUrl,
+  renderConfirmationCardHtml,
+  showProblemToast,
+  type ReservationDoc
+} from './reservations';
 
-// Supabase removed, using Firebase from './firebase.ts'
+export function normalizeCloudinaryUrl(url: string | null | undefined, width = 800): string {
+  if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) {
+    return url || '';
+  }
+  const cleanUrl = url.split('?')[0];
+  const uploadIndex = cleanUrl.indexOf('/upload/');
+  if (uploadIndex === -1) return cleanUrl;
+  const base = cleanUrl.substring(0, uploadIndex + 8);
+  let rest = cleanUrl.substring(uploadIndex + 8);
+  const parts = rest.split('/');
+  if (parts.length > 1 && parts[0].includes('_')) {
+    parts.shift();
+    rest = parts.join('/');
+  }
+  return `${base}f_auto,q_auto,w_${width},c_limit/${rest}`;
+}
+
+// Using Firebase from './firebase.ts'
+
+// ============================================================================
+// CANONICAL CARTA CONTRACTS & INTERFACES (SSOT: specs/openapi.yaml)
+// ============================================================================
+
+export const OFFICIAL_ALLERGEN_TAGS = [
+  'pescado',
+  'marisco',
+  'carne',
+  'pollo',
+  'picante',
+  'gluten-free',
+  'gluten',
+  'huevos',
+  'lacteos',
+  'soja',
+  'cacahuetes',
+  'mostaza',
+  'crustaceos',
+  'apio',
+  'moluscos',
+  'sesamo'
+] as const;
+
+export type AllergenTag = typeof OFFICIAL_ALLERGEN_TAGS[number];
+
+export type MenuCategory = 'comida' | 'coctel' | 'bebida';
+
+export interface MenuItem {
+  id?: string;
+  name: string;
+  description?: string;
+  price: number;
+  category: MenuCategory | string;
+  subcategory?: string;
+  sort_order?: number;
+  tags?: AllergenTag[];
+  is_available?: boolean;
+  image_url?: string | null;
+}
+
+export interface FormattedPrice {
+  isMarketPrice: boolean;
+  priceClass: string;
+  displayPrice: string;
+}
+
+// ============================================================================
+// PURE DOMAIN FUNCTIONS (CARTA & ALLERGENS)
+// ============================================================================
+
+export function sanitizeDishName(name: string): string {
+  if (!name) return '';
+  return name
+    .replace(/\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}]|[\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function isValidAllergenTag(tag: unknown): tag is AllergenTag {
+  return typeof tag === 'string' && (OFFICIAL_ALLERGEN_TAGS as readonly string[]).includes(tag);
+}
+
+export function renderAllergenPill(tag: string): string {
+  if (!isValidAllergenTag(tag)) return '';
+  const label = (tag === 'gluten-free' ? 'GLUTEN-FREE' : tag).toUpperCase();
+  return `<span class="allergen-pill" data-allergen="${tag}">${label}</span>`;
+}
+
+export function formatMenuItemPrice(price: number | string, description: string = ''): FormattedPrice {
+  const numericPrice = typeof price === 'number' ? price : parseFloat(String(price));
+
+  if (isNaN(numericPrice) || numericPrice <= 0) {
+    return {
+      isMarketPrice: true,
+      priceClass: 'menu-item-price dual',
+      displayPrice: (description && description.trim().length > 0)
+        ? description.trim()
+        : 'Precio según mercado'
+    };
+  }
+
+  return {
+    isMarketPrice: false,
+    priceClass: 'menu-item-price',
+    displayPrice: `${numericPrice.toFixed(2)}€`
+  };
+}
+
+export function renderMenuItemHtml(item: MenuItem): string {
+  const cleanName = sanitizeDishName(item.name || '');
+  const pricing = formatMenuItemPrice(item.price, item.description);
+
+  const pillsHtml = (Array.isArray(item.tags) ? item.tags : [])
+    .filter(isValidAllergenTag)
+    .map(renderAllergenPill)
+    .join('');
+
+  const escapedName = cleanName.replace(/"/g, '&quot;');
+  const escapedDesc = (item.description || '').replace(/"/g, '&quot;');
+
+  const photoTrigger = item.image_url
+    ? `<button class="dish-photo-trigger" data-img="${item.image_url}" data-name="${escapedName}" data-desc="${escapedDesc}" aria-label="Ver fotografía del plato">
+        <span>FOTOGRAFÍA</span>
+        <span class="trigger-line"></span>
+      </button>`
+    : '';
+
+  const descriptionDisplay = (!pricing.isMarketPrice && item.description)
+    ? item.description.trim()
+    : '';
+
+  const descriptionBlock = descriptionDisplay
+    ? `<div class="menu-item-info"><p class="menu-item-description">${descriptionDisplay}</p></div>`
+    : '';
+
+  return `<article class="menu-item menu-item-card reveal active" data-category="${item.category || 'comida'}">
+    <div class="menu-item-header">
+      <h3 class="menu-item-name serif-title">${cleanName}</h3>
+      <span class="${pricing.priceClass}">${pricing.displayPrice}</span>
+    </div>
+    ${descriptionBlock}
+    <div class="menu-item-footer">
+      ${pillsHtml ? `<div class="menu-item-allergens">${pillsHtml}</div>` : ''}
+      ${photoTrigger}
+    </div>
+  </article>`;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- RESERVATION UI INITIALIZATION ---
@@ -14,8 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const header = document.getElementById('main-header');
   const navLinks = document.querySelector('.nav-links');
   const reservationForm = document.getElementById('reservation-form');
-  const formMessage = document.getElementById('form-message');
   let siteCache: Record<string, string> = {};
+
+  // --- LIFECYCLE & VISIBILITY HANDLES (TOP-LEVEL SCOPE TO PREVENT TS2304) ---
+  let startHeroSlideshow = () => {};
+  let stopHeroSlideshow = () => {};
+  let isHeroInView = true;
+
+  let startAutoScroll = () => {};
+  let stopAutoScroll = () => {};
+  let isGalleryInView = false;
 
   // --- DYNAMIC CONTENT ---
   async function initDynamicContent() {
@@ -77,9 +237,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           } else {
             if (item.key === 'font_title') {
-               document.documentElement.style.setProperty('--font-serif', item.content);
+                const allowedSerifs = ["'Cormorant Garamond', serif", "'Playfair Display', serif"];
+                const safeSerif = allowedSerifs.includes(item.content)
+                  ? item.content
+                  : "'Cormorant Garamond', 'Playfair Display', serif";
+                document.documentElement.style.setProperty('--font-serif', safeSerif);
             } else if (item.key === 'font_text') {
-               document.documentElement.style.setProperty('--font-sans', item.content);
+                const allowedSans = ["'Inter', sans-serif", "'Montserrat', sans-serif"];
+                const safeSans = allowedSans.includes(item.content)
+                  ? item.content
+                  : "'Inter', sans-serif";
+                document.documentElement.style.setProperty('--font-sans', safeSans);
             }
           }
         } catch (innerErr) {
@@ -87,31 +255,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     } catch (err) {
-      console.warn('Usando contenido estático (Supabase offline o vacío)');
+      console.warn('Usando contenido estático por defecto (offline o vacío)');
     }
   }
 
   initDynamicContent();
 
-  // --- HERO SLIDESHOW ---
+  // --- HERO SLIDESHOW & LIFECYCLE ---
   const heroSlides = document.querySelectorAll('.hero-slide');
-  if (heroSlides.length > 0) {
-    let currentSlide = 0;
-    setInterval(() => {
+  const heroSection = document.getElementById('inicio');
+  let heroInterval: ReturnType<typeof setInterval> | null = null;
+  let currentSlide = 0;
+
+  startHeroSlideshow = () => {
+    if (heroInterval || heroSlides.length <= 1) return;
+    if (document.visibilityState === 'hidden' || !isHeroInView) return;
+    heroInterval = setInterval(() => {
       heroSlides[currentSlide].classList.remove('active');
       currentSlide = (currentSlide + 1) % heroSlides.length;
       heroSlides[currentSlide].classList.add('active');
-    }, 5000); // Change every 5 seconds
+    }, 5000);
+  };
+
+  stopHeroSlideshow = () => {
+    if (heroInterval) {
+      clearInterval(heroInterval);
+      heroInterval = null;
+    }
+  };
+
+  if (heroSlides.length > 1) {
+    if (heroSection && 'IntersectionObserver' in window) {
+      const heroObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isHeroInView = entry.isIntersecting;
+          if (isHeroInView) {
+            startHeroSlideshow();
+          } else {
+            stopHeroSlideshow();
+          }
+        });
+      }, { threshold: 0.1 });
+      heroObserver.observe(heroSection);
+    } else {
+      startHeroSlideshow();
+    }
   }
 
-  // Sticky Header
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      header?.classList.add('scrolled');
-    } else {
-      header?.classList.remove('scrolled');
+  // --- STICKY HEADER (THROTTLED PASSIVE SCROLL) ---
+  let isScrollTicking = false;
+  const onScrollThrottled = () => {
+    if (!isScrollTicking) {
+      window.requestAnimationFrame(() => {
+        if (window.scrollY > 50) {
+          header?.classList.add('scrolled');
+        } else {
+          header?.classList.remove('scrolled');
+        }
+        isScrollTicking = false;
+      });
+      isScrollTicking = true;
     }
-  });
+  };
+  window.addEventListener('scroll', onScrollThrottled, { passive: true });
+  onScrollThrottled();
 
   // Mobile Menu Logic
   const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -153,54 +360,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- SCROLL REVEAL ANIMATION ---
-  const revealElements = document.querySelectorAll('.reveal');
-
-  const revealOnScroll = () => {
-    const windowHeight = window.innerHeight;
-    const elementVisible = 150;
-
-    revealElements.forEach((reveal) => {
-      const elementTop = reveal.getBoundingClientRect().top;
-      if (elementTop < windowHeight - elementVisible) {
-        reveal.classList.add('active');
-      } else {
-        // Optional: remove active to re-animate
-        // reveal.classList.remove('active');
-      }
+  // --- SCROLL REVEAL ANIMATION (PASSIVE INTERSECTION OBSERVER) ---
+  const revealElements = document.querySelectorAll('.reveal:not(.active)');
+  if ('IntersectionObserver' in window) {
+    const revealObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, {
+      rootMargin: '0px 0px -80px 0px',
+      threshold: 0.1
     });
-  };
 
-  window.addEventListener('scroll', revealOnScroll);
-  revealOnScroll(); // Trigger once on load
+    revealElements.forEach(el => revealObserver.observe(el));
+  } else {
+    revealElements.forEach(el => el.classList.add('active'));
+  }
 
-  // --- MENU TABS (Scroll Spy) ---
-  const sections = document.querySelectorAll('section');
+  // --- MENU TABS (Scroll Spy using IntersectionObserver) ---
+  const sections = document.querySelectorAll('section[id]');
   const tabs = document.querySelectorAll('.tab-link');
   const menuGrid = document.querySelector('.menu-grid');
 
-  if (tabs.length > 0) {
-    window.addEventListener("scroll", () => {
-      let current = "";
-      sections.forEach((section) => {
-        const sectionTop = section.offsetTop;
-        if (window.pageYOffset >= sectionTop - 150) {
-          current = section.getAttribute("id") || "";
-        }
-      });
-
+  if (tabs.length > 0 && sections.length > 0 && 'IntersectionObserver' in window) {
+    const updateActiveTab = (currentId: string) => {
       tabs.forEach((tab) => {
-        tab.classList.remove("active");
-        if (tab.getAttribute("href") === `#${current}`) {
-          tab.classList.add("active");
+        const href = tab.getAttribute('href');
+        if (href === `#${currentId}` || href === `/#${currentId}`) {
+          tab.classList.add('active');
+        } else if (href && (href.startsWith('#') || href.startsWith('/#'))) {
+          tab.classList.remove('active');
         }
       });
+    };
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          if (id) updateActiveTab(id);
+        }
+      });
+    }, {
+      rootMargin: '-20% 0px -70% 0px',
+      threshold: 0
     });
+
+    sections.forEach(section => sectionObserver.observe(section));
   }
 
   // --- MENU LOGIC (Only if menu grid exists) ---
   if (menuGrid) {
     const filterBtns = document.querySelectorAll('.filter-btn');
+
+    // --- PHOTO MODAL LOGIC (Initialized once in outer scope to prevent listener accumulation) ---
+    const photoModal = document.getElementById('menu-photo-modal');
+    const modalImg = photoModal?.querySelector('.menu-modal-img') as HTMLImageElement | null;
+    const modalName = photoModal?.querySelector('.modal-item-name');
+    const modalDesc = photoModal?.querySelector('.modal-item-desc');
+    const closeModalBtn = photoModal?.querySelector('.close-menu-modal');
+
+    const closePhotoModal = () => {
+      photoModal?.classList.remove('active');
+      if (modalImg) modalImg.src = '';
+      document.body.style.overflow = '';
+    };
+
+    if (photoModal) {
+      closeModalBtn?.addEventListener('click', closePhotoModal);
+      photoModal.addEventListener('click', (e) => {
+        if (e.target === photoModal) closePhotoModal();
+      });
+      document.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && photoModal.classList.contains('active')) {
+          closePhotoModal();
+        }
+      });
+    }
 
     async function loadMenu(category: string, tagFilter: string | null = null) {
       menuGrid!.innerHTML = '<div class="loading-state">Actualizando selección...</div>';
@@ -213,13 +452,16 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         
         const qs = await getDocs(q);
-        let data = qs.docs.map(d => d.data());
+        let data: MenuItem[] = qs.docs.map(d => ({
+          id: d.id,
+          ...(d.data() as Omit<MenuItem, 'id'>)
+        }));
 
         if (tagFilter) {
-          data = data.filter((d: any) => (d.tags || []).includes(tagFilter));
+          data = data.filter((d: MenuItem) => (Array.isArray(d.tags) ? d.tags : []).includes(tagFilter as AllergenTag));
         }
         
-        data.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+        data.sort((a: MenuItem, b: MenuItem) => (a.sort_order || 0) - (b.sort_order || 0));
 
         if (!data || data.length === 0) {
           const msg = tagFilter
@@ -229,79 +471,27 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // Group by subcategory
-        const groups: { [key: string]: any[] } = {};
-        data.forEach((item: any) => {
-          const sub = item.subcategory || 'OTROS';
+        // Group by subcategory with sanitization
+        const groups: Record<string, MenuItem[]> = {};
+        data.forEach((item: MenuItem) => {
+          const sub = sanitizeDishName(item.subcategory || 'OTROS');
           if (!groups[sub]) groups[sub] = [];
           groups[sub].push(item);
         });
 
-        const tagIcons: { [key: string]: string } = {
-          'pescado': '<span class="menu-tag" tabindex="0" data-tooltip="Pescado">🐟</span>',
-          'marisco': '<span class="menu-tag" tabindex="0" data-tooltip="Marisco">🦐</span>',
-          'carne': '<span class="menu-tag" tabindex="0" data-tooltip="Carne">🥩</span>',
-          'pollo': '<span class="menu-tag" tabindex="0" data-tooltip="Pollo">🍗</span>',
-          'picante': '<span class="menu-tag" tabindex="0" data-tooltip="Picante">🌶️</span>',
-          'gluten-free': '<span class="menu-tag" tabindex="0" data-tooltip="Sin Gluten">🌾</span>',
-          'gluten': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Gluten">🌾</span>',
-          'huevos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Huevos">🥚</span>',
-          'lacteos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Lácteos">🥛</span>',
-          'soja': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Soja">🫘</span>',
-          'cacahuetes': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Cacahuetes">🥜</span>',
-          'mostaza': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Mostaza">🟡</span>',
-          'crustaceos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Crustáceos">🦐</span>',
-          'apio': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Apio">🥬</span>',
-          'moluscos': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Moluscos">🦪</span>',
-          'sesamo': '<span class="menu-tag" tabindex="0" data-tooltip="Contiene Sésamo">🥯</span>'
-        };
-
         let html = '';
         if (tagFilter) {
-          html += `<div class="filter-notice">Filtrando por: <strong>${tagFilter.toUpperCase()}</strong> <a href="#" onclick="window.location.search=''; return false;" style="color:var(--color-gold); margin-left:10px; font-size:0.8em;">(Ver Todo)</a></div>`;
+          html += `<div class="filter-notice">Filtrando por: <strong>${tagFilter.toUpperCase()}</strong> <a href="#" onclick="window.location.search=''; return false;" style="color:var(--lux-gold-champagne, #c5a880); margin-left:10px; font-size:0.8em;">(Ver Todo)</a></div>`;
         }
 
         for (const sub in groups) {
           html += `<div class="menu-subcategory-title">${sub}</div>`;
-          html += groups[sub].map((item: any) => {
-            const hasNumericPrice = item.price > 0;
-            let priceDisplay = hasNumericPrice ? `${parseFloat(item.price).toFixed(2)}€` : item.description;
-            let descriptionDisplay = hasNumericPrice ? (item.description || '') : '';
-
-            // Handle very long dual prices (optional styling class)
-            const priceClass = !hasNumericPrice ? 'menu-item-price dual' : 'menu-item-price';
-
-            const icons = (item.tags || []).map((tag: string) => tagIcons[tag] || '').join('');
-
-            const photoBtn = item.image_url ? `
-              <button class="item-photo-btn" data-img="${item.image_url}" data-name="${item.name}" data-desc="${item.description || ''}" title="Ver foto del plato">
-                <span style="font-size: 1.1em; margin-right: 3px; pointer-events: none;">📸</span> Ver
-              </button>
-            ` : '';
-
-            return `
-              <div class="menu-item reveal active">
-                <div class="menu-item-header">
-                  <h3>${item.name}${icons}${photoBtn}</h3>
-                  <span class="${priceClass}">${priceDisplay}</span>
-                </div>
-                ${descriptionDisplay ? `
-                <div class="menu-item-info">
-                  <p>${descriptionDisplay}</p>
-                </div>` : ''}
-              </div>
-            `;
-          }).join('');
+          html += groups[sub].map(renderMenuItemHtml).join('');
         }
         menuGrid!.innerHTML = html;
 
-        // --- PHOTO MODAL LOGIC ---
-        const photoBtns = document.querySelectorAll('.item-photo-btn');
-        const photoModal = document.getElementById('menu-photo-modal');
-        const modalImg = photoModal?.querySelector('.menu-modal-img') as HTMLImageElement;
-        const modalName = photoModal?.querySelector('.modal-item-name');
-        const modalDesc = photoModal?.querySelector('.modal-item-desc');
-        const closeModalBtn = photoModal?.querySelector('.close-menu-modal');
+        // --- PHOTO TRIGGER BINDING FOR LOADED MENU ITEMS ---
+        const photoBtns = menuGrid!.querySelectorAll('.dish-photo-trigger, .item-photo-btn');
 
         photoBtns.forEach(btn => {
           btn.addEventListener('click', (e) => {
@@ -314,11 +504,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (photoModal && modalImg && imgUrl) {
               let finalUrl = imgUrl;
               if (finalUrl.includes('cloudinary')) {
-                  if (finalUrl.includes('f_auto,q_auto') && !finalUrl.includes('w_')) {
-                      finalUrl = finalUrl.replace('f_auto,q_auto', 'f_auto,q_auto,w_800,c_limit');
-                  } else if (!finalUrl.includes('f_auto')) {
-                      finalUrl = finalUrl.replace('/upload/', '/upload/f_auto,q_auto,w_800,c_limit/');
-                  }
+                if (finalUrl.includes('f_auto,q_auto') && !finalUrl.includes('w_')) {
+                  finalUrl = finalUrl.replace('f_auto,q_auto', 'f_auto,q_auto,w_800,c_limit');
+                } else if (!finalUrl.includes('f_auto')) {
+                  finalUrl = finalUrl.replace('/upload/', '/upload/f_auto,q_auto,w_800,c_limit/');
+                }
               }
               modalImg.src = finalUrl;
               if (modalName) modalName.textContent = name || '';
@@ -327,16 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
               document.body.style.overflow = 'hidden'; // Lock scroll
             }
           });
-        });
-
-        const closeFunc = () => {
-          photoModal?.classList.remove('active');
-          document.body.style.overflow = '';
-        };
-
-        closeModalBtn?.addEventListener('click', closeFunc);
-        photoModal?.addEventListener('click', (e) => {
-          if (e.target === photoModal) closeFunc();
         });
 
       } catch (err) {
@@ -374,65 +554,65 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMenu(initialCat, initialTag);
   }
 
-  // --- GALLERY LOGIC (Grid Layout) ---
+  // --- GALLERY LOGIC (Grid Layout & Firestore gallery_items SSOT) ---
   const galleryGrid = document.querySelector('.gallery-grid');
+
+  interface PublicGalleryItem {
+    id?: string;
+    image_url?: string;
+    secure_url?: string;
+    public_id?: string;
+    created_at?: string;
+    title?: string;
+    caption_title?: string;
+    description?: string;
+    caption_desc?: string;
+    name?: string;
+    localUrl?: string;
+  }
 
   if (galleryGrid) {
     async function loadGallery() {
-        const bucketName = 'restaurante-assets';
       try {
-        const listRef = ref(storage, bucketName);
-        let galleryFiles: any[] = [];
+        let galleryFiles: PublicGalleryItem[] = [];
         try {
-            const res = await listAll(listRef);
-            galleryFiles = res.items;
-        } catch(e) {
-            console.warn('Gallery no encontrada en Firebase aún, usando locales.');
+          const q = query(collection(db, 'gallery_items'), orderBy('created_at', 'desc'));
+          const snap = await getDocs(q);
+          galleryFiles = snap.docs.map(d => ({ id: d.id, ...(d.data() as PublicGalleryItem) }));
+        } catch (e) {
+          console.warn('Gallery no encontrada en Firestore aún, usando locales.', e);
         }
 
-        // Si la galería de Firebase está vacía, usamos las locales por defecto
+        // Si la galería de Firestore está vacía, usamos las locales por defecto
         let isFallback = false;
         if (galleryFiles.length === 0) {
-           isFallback = true;
-           galleryFiles = [
-             { name: 'galeria1.webp', localUrl: '/assets/Hero1.webp' },
-             { name: 'galeria2.webp', localUrl: '/assets/hero2.webp' },
-             { name: 'galeria3.webp', localUrl: '/assets/hero3.webp' },
-             { name: 'galeria4.webp', localUrl: '/assets/hero4.webp' },
-             { name: 'galeria6.webp', localUrl: '/assets/Ceviche.webp' },
-             { name: 'galeria7.webp', localUrl: '/assets/Cocteles.webp' },
-             { name: 'galeria8.webp', localUrl: '/assets/LomoSalteado.webp' },
-             { name: 'galeria9.webp', localUrl: '/assets/Mariscos.webp' }
-           ];
-        } else {
-            // Filter and Sort from Firebase
-            galleryFiles = galleryFiles
-              .filter((file: any) => file.name.toLowerCase().startsWith('galeria') && !file.name.toLowerCase().includes('galeria2'))
-              .sort((a: any, b: any) => {
-                const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
-                const numB = parseInt(b.name.match(/\d+/)?.[0] || '0');
-                return numA - numB;
-              });
+          isFallback = true;
+          galleryFiles = [
+            { name: 'galeria1', localUrl: '/assets/Hero1.webp' },
+            { name: 'galeria2', localUrl: '/assets/hero2.webp' },
+            { name: 'galeria3', localUrl: '/assets/hero3.webp' },
+            { name: 'galeria4', localUrl: '/assets/hero4.webp' },
+            { name: 'galeria6', localUrl: '/assets/Ceviche.webp' },
+            { name: 'galeria7', localUrl: '/assets/Cocteles.webp' },
+            { name: 'galeria8', localUrl: '/assets/LomoSalteado.webp' },
+            { name: 'galeria9', localUrl: '/assets/Mariscos.webp' }
+          ];
         }
 
         if (galleryFiles.length > 0) {
           galleryGrid!.innerHTML = ''; // Clear default
 
-          // Because getDownloadURL is async, we use Promise.all or for...of
           for (const [index, fileRef] of galleryFiles.entries()) {
             let fileUrl = '';
             let isVideo = false;
-            try {
-               if (isFallback) {
-                   fileUrl = fileRef.localUrl;
-                   isVideo = false;
-               } else {
-                   fileUrl = await getDownloadURL(fileRef);
-                   const meta = await getMetadata(fileRef);
-                   isVideo = meta.contentType?.startsWith('video') || fileRef.name.endsWith('.mp4');
-               }
-            } catch(e) { console.warn(e); }
-
+            if (isFallback) {
+              fileUrl = fileRef.localUrl || '';
+              isVideo = false;
+            } else {
+              const rawUrl = fileRef.image_url || fileRef.secure_url || '';
+              fileUrl = normalizeCloudinaryUrl(rawUrl, 600);
+              isVideo = fileUrl.endsWith('.mp4');
+            }
 
             // Layout classes based on index (Original premium grid)
             let layoutClass = '';
@@ -442,12 +622,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = `gallery-item ${layoutClass} reveal active`;
 
-            const baseName = (isFallback ? fileRef.name : (((fileRef as any).name || ''))).split('.')[0].toLowerCase();
+            const baseName = (isFallback ? (fileRef.name || '') : (fileRef.public_id || fileRef.title || fileRef.caption_title || '')).split('.')[0].toLowerCase();
             const captions: Record<string, { title: string, desc: string, linkStr?: string }> = {
               'galeria1': { title: 'La Experiencia', desc: 'Decoración milenaria en cada rincón, inspirada en las enigmáticas Líneas de Nazca.', linkStr: '<a href="/#experiencia" class="gallery-overlay-link">Ver Concepto</a>' },
-              'galeria3': { title: 'Mixología 🍸', desc: 'Nuestros cócteles de autor te sorprenderán. El acompañamiento ideal para la experiencia peruana.', linkStr: '<a href="carta.html?cat=coctel" class="gallery-overlay-link">Ver Cócteles</a>' },
+              'galeria3': { title: 'Mixología', desc: 'Nuestros cócteles de autor te sorprenderán. El acompañamiento ideal para la experiencia peruana.', linkStr: '<a href="carta.html?cat=coctel" class="gallery-overlay-link">Ver Cócteles</a>' },
               'galeria4': { title: 'El Fuego', desc: 'Lomo saltado al rojo vivo. Técnicas asiáticas fusionadas con la sazón criolla tradicional.' },
-              'galeria5': { title: 'El Dulce Final 🍰', desc: 'Delicados postres limeños. El cierre perfecto que no te puedes perder.', linkStr: '<a href="carta.html?cat=comida" class="gallery-overlay-link">Nuestros Postres</a>' },
+              'galeria5': { title: 'El Dulce Final', desc: 'Delicados postres limeños. El cierre perfecto que no te puedes perder.', linkStr: '<a href="carta.html?cat=comida" class="gallery-overlay-link">Nuestros Postres</a>' },
               'galeria6': { title: 'Puros Mares', desc: 'El ceviche clásico interpretado con la pesca del día más fresca.' },
               'galeria10': { title: 'Artesanía Visual', desc: 'Detalles que evocan la costa y la sierra, preparados para deleitarte.', linkStr: '<a href="carta.html" class="gallery-overlay-link">Descubrir la Carta</a>' }
             };
@@ -458,20 +638,23 @@ document.addEventListener('DOMContentLoaded', () => {
               { title: 'Sabe a Perú', desc: 'Un viaje culinario que tocará todos tus sentidos.' }
             ];
 
-            const caption = captions[baseName] || fallbackCaptions[index % fallbackCaptions.length];
+            const defaultCaption = captions[baseName] || fallbackCaptions[index % fallbackCaptions.length];
+            const titleText = fileRef.caption_title || fileRef.title || defaultCaption.title;
+            const descText = fileRef.caption_desc || fileRef.description || defaultCaption.desc;
+            const linkStr = defaultCaption.linkStr || '';
 
             const overlayHTML = `
               <div class="gallery-overlay">
-                <span class="gallery-overlay-title">${caption.title}</span>
-                <span class="gallery-overlay-desc">${caption.desc}</span>
-                ${caption.linkStr ? caption.linkStr : ''}
+                <span class="gallery-overlay-title">${titleText}</span>
+                <span class="gallery-overlay-desc">${descText}</span>
+                ${linkStr}
               </div>
             `;
 
             if (isVideo) {
               item.innerHTML = `<video src="${fileUrl}" muted loop playsinline draggable="false" onmouseover="this.play()" onmouseout="this.pause()" style="transform: translateZ(0); will-change: transform;"></video>${overlayHTML}`;
             } else {
-              item.innerHTML = `<img src="${fileUrl}" alt="${caption.title}" draggable="false" loading="lazy" decoding="async" onload="this.style.opacity=1" style="transform: translateZ(0); will-change: transform; transition: opacity 0.3s, transform 0.6s ease, filter 0.6s ease; opacity: 0;"><div class="skeleton-bg" style="position:absolute; inset:0; background:#111; z-index:-1;"></div>${overlayHTML}`;
+              item.innerHTML = `<img src="${fileUrl}" alt="${titleText}" draggable="false" loading="lazy" decoding="async" onload="this.style.opacity=1" style="transform: translateZ(0); will-change: transform; transition: opacity 0.3s, transform 0.6s ease, filter 0.6s ease; opacity: 0;"><div class="skeleton-bg" style="position:absolute; inset:0; background:#111; z-index:-1;"></div>${overlayHTML}`;
             }
             galleryGrid!.appendChild(item);
           }
@@ -533,12 +716,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Auto-advance functionality
-    let autoScrollInterval: ReturnType<typeof setInterval>;
+    let autoScrollInterval: ReturnType<typeof setInterval> | null = null;
 
-    const startAutoScroll = () => {
+    startAutoScroll = () => {
       stopAutoScroll(); // ensure no duplicates
+      if (document.visibilityState === 'hidden' || !isGalleryInView || isDown) return;
       autoScrollInterval = setInterval(() => {
-        if (!isDown) {
+        if (!isDown && galleryGrid) {
           const scrollAmount = window.innerWidth > 768 ? window.innerWidth * 0.3 : window.innerWidth * 0.8;
           // Determine if we are at the end
           if ((galleryGrid as HTMLElement).scrollLeft + (galleryGrid as HTMLElement).clientWidth >= (galleryGrid as HTMLElement).scrollWidth - 10) {
@@ -552,8 +736,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 4000); // 4 seconds interval
     };
 
-    const stopAutoScroll = () => {
-      if (autoScrollInterval) clearInterval(autoScrollInterval);
+    stopAutoScroll = () => {
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+      }
     };
 
     // Pause auto-scroll on hover or interaction
@@ -562,87 +749,178 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isDown) startAutoScroll();
     });
     galleryGrid.addEventListener('touchstart', stopAutoScroll, { passive: true });
-    galleryGrid.addEventListener('touchend', startAutoScroll, { passive: true });
+    galleryGrid.addEventListener('touchend', () => {
+      if (!isDown) startAutoScroll();
+    }, { passive: true });
 
-    startAutoScroll(); // init
+    // Viewport observer for gallery section
+    const gallerySection = document.getElementById('galeria');
+    if (gallerySection && 'IntersectionObserver' in window) {
+      const galleryObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isGalleryInView = entry.isIntersecting;
+          if (isGalleryInView) {
+            startAutoScroll();
+          } else {
+            stopAutoScroll();
+          }
+        });
+      }, { threshold: 0.1 });
+      galleryObserver.observe(gallerySection);
+    } else {
+      isGalleryInView = true;
+      startAutoScroll(); // init
+    }
 
   }
 
-  // --- RESERVATION LOGIC ---
+  // --- RESERVATION LOGIC (2-Step Anti-Popup Concierge Flow) ---
   if (reservationForm) {
+    // Dynamic listener on comensales input for Imperial Table banner
+    const peopleInput = reservationForm.querySelector('input[name="people"]') as HTMLInputElement | null;
+    const imperialBanner = document.getElementById('imperial-table-notice');
+    if (peopleInput && imperialBanner) {
+      const handlePaxChange = () => {
+        const pax = parseInt(peopleInput.value, 10);
+        if (!isNaN(pax) && pax > 6) {
+          imperialBanner.style.display = 'block';
+        } else {
+          imperialBanner.style.display = 'none';
+        }
+      };
+      peopleInput.addEventListener('input', handlePaxChange);
+      peopleInput.addEventListener('change', handlePaxChange);
+      handlePaxChange();
+    }
+
     reservationForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitBtn = reservationForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-
       if (submitBtn) submitBtn.disabled = true;
-      if (formMessage) {
-        formMessage.textContent = 'Procesando su solicitud...';
-        formMessage.className = 'form-message';
-      }
 
       const formData = new FormData(reservationForm as HTMLFormElement);
+      const name = (formData.get('name') as string || '').trim();
+      const email = (formData.get('email') as string || '').trim();
+      const phone = (formData.get('phone') as string || '').trim();
+      const date = (formData.get('date') as string || '').trim();
+      const time = (formData.get('time') as string || '').trim();
+      const peopleRaw = formData.get('people') as string || '';
+      const people = parseInt(peopleRaw, 10);
+      const occasion = (formData.get('occasion') as string || '').trim();
 
+      // Validate required fields
+      if (!name || !email || !date || !time || isNaN(people)) {
+        showProblemToast({
+          type: 'https://api.sabeaperu.es/errors/validation',
+          title: 'Datos de reserva incompletos',
+          status: 422,
+          detail: 'Por favor, complete todos los campos obligatorios (*).'
+        });
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
 
-      const reservationForDb = {
-        customer_name: formData.get('name'),
-        customer_email: formData.get('email'),
-        reservation_date: formData.get('date'),
-        reservation_time: formData.get('time'),
-        number_of_people: parseInt(formData.get('people') as string),
-        occasion: formData.get('occasion'),
-        status: 'pending'
+      // Validate guest count boundaries
+      const guestCheck = validateGuestCount(people);
+      if (!guestCheck.valid) {
+        showProblemToast({
+          type: 'https://api.sabeaperu.es/errors/invalid-guest-count',
+          title: 'Número de comensales no válido',
+          status: 422,
+          detail: guestCheck.error || 'El número de comensales debe ser un número entero entre 1 y 20.'
+        });
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      // Pre-flight slot capacity re-check against Firestore
+      const slotCheck = await checkSlotAvailabilityAtSubmit(date, time);
+      if (!slotCheck.available) {
+        showProblemToast({
+          type: 'https://api.sabeaperu.es/errors/slot-full',
+          title: 'Franja horaria completa',
+          status: 409,
+          detail: 'El aforo máximo de 4 mesas concurrentes ha sido alcanzado.'
+        });
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      // Generate collision-resistant locator (SP-XXXX)
+      const locator = generateReservationLocator();
+
+      // Persist reservation in Firestore
+      const reservationForDb: ReservationDoc = {
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone || undefined,
+        reservation_date: date,
+        reservation_time: time,
+        number_of_people: people,
+        occasion: occasion || undefined,
+        locator,
+        status: 'pending',
+        created_at: new Date().toISOString()
       };
 
       try {
         await addDoc(collection(db, 'reservations'), reservationForDb);
 
-        // WhatsApp Integration
-        const restaurantPhone = siteCache['contact_whatsapp'] || "34662125650";
-        const waMessage = `Hola, quisiera confirmar mi reserva en Sabe a Perú:
-📅 Fecha: ${reservationForDb.reservation_date}
-⏰ Hora: ${reservationForDb.reservation_time}
-👤 Personas: ${reservationForDb.number_of_people}
-📝 Nombre: ${reservationForDb.customer_name}
-${reservationForDb.occasion ? `🎉 Ocasión: ${reservationForDb.occasion}` : ''}`;
+        // Build voluntary WhatsApp confirmation URL
+        const restaurantPhone = siteCache['contact_whatsapp'] || '34662125650';
+        const waUrl = buildWhatsAppReservationUrl({
+          phone: restaurantPhone,
+          locator,
+          name,
+          date,
+          time,
+          people
+        });
 
-        const waUrl = `https://wa.me/${restaurantPhone}?text=${encodeURIComponent(waMessage)}`;
+        // Render confirmation card (replacing/covering form, zero window.open)
+        const cardHtml = renderConfirmationCardHtml({
+          locator,
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phone || undefined,
+          reservation_date: date,
+          reservation_time: time,
+          number_of_people: people,
+          occasion: occasion || undefined,
+          waUrl,
+          isImperial: guestCheck.isImperial,
+          imperialNotice: guestCheck.notice
+        });
 
-        // Try to open WhatsApp
-        const newWindow = window.open(waUrl, '_blank');
-
-        if (formMessage) {
-          formMessage.innerHTML = '¡Reserva guardada! Confirmando en WhatsApp...<br>';
-
-          // Add manual button in case of popup blocker
-          const waBtn = document.createElement('a');
-          waBtn.href = waUrl;
-          waBtn.target = '_blank';
-          waBtn.className = 'btn-gold-fill';
-          waBtn.style.marginTop = '15px';
-          waBtn.style.display = 'inline-block';
-          waBtn.style.textDecoration = 'none';
-          waBtn.textContent = 'Confirmar por WhatsApp →';
-
-          formMessage.appendChild(waBtn);
-          formMessage.className = 'form-message success';
+        const confirmationCard = document.getElementById('reservation-confirmation-card');
+        if (confirmationCard) {
+          confirmationCard.outerHTML = cardHtml;
+        } else {
+          reservationForm.insertAdjacentHTML('afterend', cardHtml);
         }
-
-        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-          // Popup blocked
-          console.log("Popup blocked");
-        }
-
-        (reservationForm as HTMLFormElement).reset();
+        (reservationForm as HTMLFormElement).style.display = 'none';
 
       } catch (error) {
         console.error('Error al reservar:', error);
-        if (formMessage) {
-          formMessage.textContent = 'Hubo un error al enviar la reserva. Por favor, llámanos directamente.';
-          formMessage.classList.add('error');
-        }
-      } finally {
+        showProblemToast({
+          type: 'https://api.sabeaperu.es/errors/reservation-mutation',
+          title: 'Error de conexión',
+          status: 500,
+          detail: 'No hemos podido registrar su solicitud en este momento. Por favor, contacte directamente por teléfono o WhatsApp.'
+        });
         if (submitBtn) submitBtn.disabled = false;
       }
     });
   }
+
+  // --- LIFECYCLE VISIBILITY LISTENER ---
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      stopHeroSlideshow();
+      stopAutoScroll();
+    } else {
+      if (isHeroInView) startHeroSlideshow();
+      if (isGalleryInView) startAutoScroll();
+    }
+  });
 });
