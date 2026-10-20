@@ -26,6 +26,7 @@ h1, h2, h3, h4, h5, h6 {
   text-rendering: optimizeLegibility;
 }
 
+html { scroll-behavior: smooth; }
 .mobile-menu-btn, .mobile-nav { display: none; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background-color: #ffffff; color: var(--lux-text-dark); font-family: var(--font-sans); overflow-x: hidden; line-height: 1.6; }

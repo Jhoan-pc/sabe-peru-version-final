@@ -17,6 +17,9 @@ export default defineConfig({
                         if (name.includes('experiencia')) {
                             return 'assets/experiencia-[hash][extname]';
                         }
+                        if (name.includes('admin')) {
+                            return 'assets/admin-[hash][extname]';
+                        }
                         return 'assets/style-[hash][extname]';
                     }
                     return 'assets/[name]-[hash][extname]';

@@ -14,6 +14,96 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&display=swap">
     <link rel="stylesheet" href="/src/style.css">
+    <style>
+        /* Estética y Fluidez de la Carta */
+        .menu-filters {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(197, 168, 128, 0.25);
+            color: #b5afa6;
+            font-family: var(--font-sans);
+            padding: 12px 28px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.20em;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .filter-btn:hover {
+            border-color: var(--lux-gold-champagne);
+            color: var(--lux-text-primary);
+            background: rgba(197, 168, 128, 0.08);
+            transform: translateY(-1px);
+        }
+        .filter-btn.active {
+            border-color: var(--lux-gold-champagne);
+            color: var(--lux-gold-champagne);
+            background: rgba(197, 168, 128, 0.12);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        .menu-grid.dynamic {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .menu-item {
+            padding: 24px 0;
+            border-bottom: 1px solid rgba(197, 168, 128, 0.12);
+            transition: all 0.3s ease;
+        }
+        .menu-item:hover {
+            background: rgba(197, 168, 128, 0.03);
+            padding-left: 12px;
+            border-bottom-color: rgba(197, 168, 128, 0.35);
+        }
+        .menu-payment-notice {
+            margin-top: 60px;
+            padding-top: 35px;
+            border-top: 1px solid rgba(197, 168, 128, 0.2);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .payment-methods-badges {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(197, 168, 128, 0.05);
+            border: 1px solid rgba(197, 168, 128, 0.2);
+            border-radius: 2px;
+            color: #d8d3c8;
+            font-family: var(--font-sans);
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .payment-badge .pay-icon {
+            color: var(--lux-gold-champagne);
+        }
+        .menu-vat-note {
+            font-family: var(--font-sans);
+            font-size: 0.78rem;
+            letter-spacing: 0.12em;
+            color: #8c867d;
+            margin: 0;
+            text-transform: uppercase;
+        }
+    </style>
 </head>
 
 <body class="page-carta">
@@ -105,6 +195,25 @@
                 <div id="menu-grid" class="menu-grid dynamic">
                     <!-- Los platos se cargarán aquí dinámicamente -->
                     <div class="loading-state">Preparando los sabores de hoy...</div>
+                </div>
+
+                <!-- Métodos de pago e IVA -->
+                <div class="menu-payment-notice">
+                    <div class="payment-methods-badges">
+                        <span class="payment-badge" title="Tarjetas bancarias">
+                            <svg class="pay-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            Tarjetas
+                        </span>
+                        <span class="payment-badge" title="Pago en efectivo">
+                            <svg class="pay-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
+                            Efectivo
+                        </span>
+                        <span class="payment-badge" title="Bizum">
+                            <svg class="pay-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            Bizum
+                        </span>
+                    </div>
+                    <p class="menu-vat-note">Precios en Euros (€) • IVA incluido • Pago directo en sala</p>
                 </div>
             </div>
         </section>

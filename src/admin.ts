@@ -524,8 +524,8 @@ if (typeof window !== 'undefined') {
                 row.innerHTML = `
                     <td><strong>${escapeHtml(item.name)}</strong><br><small>${escapeHtml(item.subcategory || '')}</small></td>
                     <td>${escapeHtml(item.category)}</td>
-                    <td>S/. ${Number(item.price).toFixed(2)}</td>
-                    <td>${item.is_available ? '<span style="color:green">Disponible</span>' : '<span style="color:red">No Disp.</span>'}</td>
+                    <td>${Number(item.price).toFixed(2)} €</td>
+                    <td>${item.is_available ? '<span style="color:#81c784">Disponible</span>' : '<span style="color:#e57373">No Disp.</span>'}</td>
                     <td>
                         <button class="btn-edit" data-id="${item.id}">Editar</button>
                         <button class="btn-delete" data-id="${item.id}">Borrar</button>

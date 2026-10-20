@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- MENU TABS (Scroll Spy using IntersectionObserver) ---
   const sections = document.querySelectorAll('section[id]');
   const tabs = document.querySelectorAll('.tab-link');
-  const menuGrid = document.querySelector('.menu-grid');
+  const menuGrid = document.querySelector('.menu-grid') as HTMLElement | null;
 
   if (tabs.length > 0 && sections.length > 0 && 'IntersectionObserver' in window) {
     const updateActiveTab = (currentId: string) => {
@@ -442,7 +442,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadMenu(category: string, tagFilter: string | null = null) {
-      menuGrid!.innerHTML = '<div class="loading-state">Actualizando selección...</div>';
+      if (menuGrid!.children.length > 0) {
+        menuGrid!.style.opacity = '0.35';
+        menuGrid!.style.transition = 'opacity 0.2s ease';
+      } else {
+        menuGrid!.innerHTML = '<div class="loading-state">Preparando los sabores de hoy...</div>';
+      }
 
       try {
         const q = query(
@@ -468,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `No encontramos platos con la etiqueta "${tagFilter}" en este momento.`
             : `Próximamente novedades en ${category}s.`;
           menuGrid!.innerHTML = `<div class="loading-state">${msg}</div>`;
+          menuGrid!.style.opacity = '1';
           return;
         }
 
@@ -489,6 +495,8 @@ document.addEventListener('DOMContentLoaded', () => {
           html += groups[sub].map(renderMenuItemHtml).join('');
         }
         menuGrid!.innerHTML = html;
+        menuGrid!.style.opacity = '1';
+        menuGrid!.style.transition = 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
 
         // --- PHOTO TRIGGER BINDING FOR LOADED MENU ITEMS ---
         const photoBtns = menuGrid!.querySelectorAll('.dish-photo-trigger, .item-photo-btn');

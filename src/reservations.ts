@@ -237,6 +237,10 @@ export function renderConfirmationCardHtml(data: ConfirmationCardData): string {
   <a id="btn-whatsapp-confirm" href="${escapeHtml(data.waUrl)}" target="_blank" rel="noopener noreferrer" class="btn-wa-confirm">
     <span>Confirmar por WhatsApp</span>
   </a>
+  <div class="card-payment-info" style="margin-top: 20px; padding: 12px 16px; background: rgba(197, 168, 128, 0.06); border: 1px solid rgba(197, 168, 128, 0.18); text-align: center;">
+    <div style="font-family: var(--font-sans); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--lux-gold-champagne, #c5a880); font-weight: 600; margin-bottom: 4px;">Pago en Restaurante</div>
+    <div style="font-family: var(--font-sans); font-size: 0.8rem; color: var(--lux-text-secondary, #c0bab0); letter-spacing: 0.05em;">Aceptamos Tarjetas bancarias, Efectivo y Bizum</div>
+  </div>
 </div>`;
 }
 
