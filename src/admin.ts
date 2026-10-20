@@ -480,7 +480,7 @@ if (typeof window !== 'undefined') {
 
             if (error) {
                 console.error('Error loading menu:', error);
-                menuTableBody.innerHTML = '<tr><td colspan="5">Error al cargar datos. Contáctese con soporte.</td></tr>';
+                menuTableBody.innerHTML = '<tr><td colspan="6">Error al cargar datos. Contáctese con soporte.</td></tr>';
                 showProblemToast({
                     type: 'https://api.sabeaperu.es/errors/menu-fetch',
                     title: 'Error al cargar carta',
@@ -521,7 +521,11 @@ if (typeof window !== 'undefined') {
             menuTableBody.innerHTML = '';
             items.forEach(item => {
                 const row = document.createElement('tr');
+                const photoCol = item.image_url
+                    ? `<img src="${normalizeCloudinaryUrl(item.image_url, 120)}" alt="${escapeHtml(item.name)}" style="width:42px; height:42px; object-fit:cover; border-radius:6px; border:1px solid rgba(197, 168, 128, 0.3); display:inline-block; vertical-align:middle;">`
+                    : `<div style="width:42px; height:42px; border-radius:6px; background:rgba(255,255,255,0.05); display:inline-flex; align-items:center; justify-content:center; color:#777; font-size:16px; vertical-align:middle;">📷</div>`;
                 row.innerHTML = `
+                    <td style="width:50px; text-align:center;">${photoCol}</td>
                     <td><strong>${escapeHtml(item.name)}</strong><br><small>${escapeHtml(item.subcategory || '')}</small></td>
                     <td>${escapeHtml(item.category)}</td>
                     <td>${Number(item.price).toFixed(2)} €</td>
@@ -696,7 +700,11 @@ if (typeof window !== 'undefined') {
                 }
 
                 const modalTitle = document.getElementById('modal-title');
-                if (modalTitle) modalTitle.textContent = 'Editar Plato';
+                if (modalTitle) {
+                    if (item.category === 'coctel') modalTitle.textContent = 'Editar Cóctel';
+                    else if (item.category === 'bebida') modalTitle.textContent = 'Editar Bebida';
+                    else modalTitle.textContent = 'Editar Plato';
+                }
                 modal.style.display = 'block';
             } catch (err) {
                 const error = err as Error;

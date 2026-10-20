@@ -447,18 +447,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function matchesProtein(item: MenuItem, filter: string): boolean {
       if (!filter || filter === 'all') return true;
-      const text = `${item.name || ''} ${item.description || ''} ${item.subcategory || ''} ${(Array.isArray(item.tags) ? item.tags : []).join(' ')}`.toLowerCase();
+      if ((item.subcategory || '').toUpperCase() === 'POSTRES') return false;
+      const text = `${item.name || ''} ${item.description || ''} ${(Array.isArray(item.tags) ? item.tags : []).join(' ')}`.toLowerCase();
       if (filter === 'pollo') {
-        return text.includes('pollo') || text.includes('ave') || text.includes('gallina') || text.includes('pato');
+        return /\b(pollo|ave|gallina|pato|alitas|mostrito)\b/i.test(text);
       }
       if (filter === 'carne') {
-        return text.includes('carne') || text.includes('lomo') || text.includes('res') || text.includes('vacuno') || text.includes('cerdo') || text.includes('panceta') || text.includes('ternera');
+        return /\b(carne|lomo|res|vacuno|cerdo|panceta|ternera|anticucho|anticuchos|hamburguesa|solomillo|chicharr[oó]n de cerdo)\b/i.test(text);
       }
       if (filter === 'mariscos') {
-        return text.includes('marisco') || text.includes('pescado') || text.includes('ceviche') || text.includes('tiradito') || text.includes('corvina') || text.includes('pulpo') || text.includes('langostino') || text.includes('camaron') || text.includes('calamar');
-      }
-      if (filter === 'vegetariano') {
-        return text.includes('vegetariano') || text.includes('vegano') || text.includes('verdura') || text.includes('papa') || text.includes('yuca');
+        return /\b(marisco|mariscos|pescado|ceviche|tiradito|corvina|pulpo|langostino|langostinos|camar[oó]n|camarones|calamar|calamares|choritos|jalea|tataki)\b/i.test(text);
       }
       return true;
     }

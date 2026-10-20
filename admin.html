@@ -59,10 +59,10 @@
                     <input type="text" id="search-input" placeholder="Buscar plato..."
                         style="padding:10px; width:300px;">
                     <select id="filter-category" style="padding:10px;">
-                        <option value="all">Todas las Categorías</option>
-                        <option value="comida">Comida</option>
-                        <option value="bebida">Bebidas</option>
+                        <option value="comida" selected>Comida (Platos)</option>
                         <option value="coctel">Cócteles</option>
+                        <option value="bebida">Bebidas</option>
+                        <option value="all">Todas las Categorías</option>
                     </select>
                 </div>
 
@@ -70,6 +70,7 @@
                     <table class="items-table">
                         <thead>
                             <tr>
+                                <th style="width:60px; text-align:center;">Foto</th>
                                 <th>Nombre</th>
                                 <th>Categoría</th>
                                 <th>Precio</th>
