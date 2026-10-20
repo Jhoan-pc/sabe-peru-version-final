@@ -48,6 +48,74 @@
             background: rgba(197, 168, 128, 0.12);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
+
+        /* Fijar tamaño humano y sobrio al nombre del plato */
+        .page-carta .menu-item-name.serif-title,
+        .menu-item .menu-item-name {
+            font-size: 1.35rem !important;
+            line-height: 1.25 !important;
+            text-align: left !important;
+            margin-bottom: 0 !important;
+            text-transform: capitalize !important;
+            text-shadow: none !important;
+            color: #f5e6d3 !important;
+            font-weight: 400 !important;
+            letter-spacing: 0.03em !important;
+        }
+
+        .menu-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            margin-bottom: 8px;
+        }
+
+        .menu-item-price {
+            font-family: var(--font-sans);
+            color: var(--lux-gold-champagne, #c5a880);
+            font-weight: 600;
+            font-size: 1.15rem;
+            letter-spacing: 0.12em;
+            white-space: nowrap;
+        }
+
+        /* Sub-filtros por tipo de proteína */
+        .protein-filters {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: -30px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        .protein-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #9e978e;
+            font-family: var(--font-sans);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 7px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .protein-btn:hover {
+            color: #f5f2eb;
+            border-color: rgba(197, 168, 128, 0.4);
+            background: rgba(197, 168, 128, 0.06);
+        }
+        .protein-btn.active {
+            background: rgba(197, 168, 128, 0.15);
+            border-color: var(--lux-gold-champagne);
+            color: var(--lux-gold-champagne);
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
         .menu-grid.dynamic {
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
@@ -190,6 +258,14 @@
                     <button class="filter-btn active" data-category="comida">Comida</button>
                     <button class="filter-btn" data-category="bebida">Bebidas</button>
                     <button class="filter-btn" data-category="coctel">Cócteles</button>
+                </div>
+
+                <div class="protein-filters" id="protein-filters">
+                    <button class="protein-btn active" data-protein="all">Todos</button>
+                    <button class="protein-btn" data-protein="pollo">Aves & Pollo</button>
+                    <button class="protein-btn" data-protein="carne">Carnes</button>
+                    <button class="protein-btn" data-protein="mariscos">Pescados & Mariscos</button>
+                    <button class="protein-btn" data-protein="vegetariano">Vegetariano</button>
                 </div>
 
                 <div id="menu-grid" class="menu-grid dynamic">

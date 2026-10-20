@@ -139,6 +139,7 @@ header.scrolled .nav-links a { color: #ffffff; }
 .menu-item-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; }
 .menu-item-header h3,
 .menu-item-name { font-family: var(--font-serif); font-size: 1.35rem; color: #f5e6d3; font-weight: 400; letter-spacing: 0.03em; line-height: 1.2; }
+.page-carta .menu-item .menu-item-name.serif-title { font-size: 1.35rem !important; text-align: left; margin-bottom: 0; text-transform: capitalize; text-shadow: none; }
 .menu-item-price { font-family: var(--font-sans); color: #cca43b; font-weight: 600; font-size: 1.1rem; letter-spacing: 0.15em; text-transform: uppercase; }
 .menu-item-price.dual { font-family: var(--font-sans); font-size: 0.85rem; font-weight: 400; letter-spacing: 0.15em; font-style: italic; color: #a8a095; }
 .menu-item-allergens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

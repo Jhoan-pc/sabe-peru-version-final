@@ -132,7 +132,7 @@ export function renderMenuItemHtml(item: MenuItem): string {
 
   const photoTrigger = item.image_url
     ? `<button class="dish-photo-trigger" data-img="${item.image_url}" data-name="${escapedName}" data-desc="${escapedDesc}" aria-label="Ver fotografía del plato">
-        <span>FOTOGRAFÍA</span>
+        <span><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px; margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>FOTOGRAFÍA</span>
         <span class="trigger-line"></span>
       </button>`
     : '';
@@ -441,7 +441,34 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    async function loadMenu(category: string, tagFilter: string | null = null) {
+    let currentCategory = 'comida';
+    let currentTag: string | null = null;
+    let currentProtein = 'all';
+
+    function matchesProtein(item: MenuItem, filter: string): boolean {
+      if (!filter || filter === 'all') return true;
+      const text = `${item.name || ''} ${item.description || ''} ${item.subcategory || ''} ${(Array.isArray(item.tags) ? item.tags : []).join(' ')}`.toLowerCase();
+      if (filter === 'pollo') {
+        return text.includes('pollo') || text.includes('ave') || text.includes('gallina') || text.includes('pato');
+      }
+      if (filter === 'carne') {
+        return text.includes('carne') || text.includes('lomo') || text.includes('res') || text.includes('vacuno') || text.includes('cerdo') || text.includes('panceta') || text.includes('ternera');
+      }
+      if (filter === 'mariscos') {
+        return text.includes('marisco') || text.includes('pescado') || text.includes('ceviche') || text.includes('tiradito') || text.includes('corvina') || text.includes('pulpo') || text.includes('langostino') || text.includes('camaron') || text.includes('calamar');
+      }
+      if (filter === 'vegetariano') {
+        return text.includes('vegetariano') || text.includes('vegano') || text.includes('verdura') || text.includes('papa') || text.includes('yuca');
+      }
+      return true;
+    }
+
+    async function loadMenu(category: string, tagFilter: string | null = null, proteinFilter: string = 'all') {
+      const proteinFiltersContainer = document.getElementById('protein-filters');
+      if (proteinFiltersContainer) {
+        proteinFiltersContainer.style.display = category === 'comida' ? 'flex' : 'none';
+      }
+
       if (menuGrid!.children.length > 0) {
         menuGrid!.style.opacity = '0.35';
         menuGrid!.style.transition = 'opacity 0.2s ease';
@@ -465,13 +492,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tagFilter) {
           data = data.filter((d: MenuItem) => (Array.isArray(d.tags) ? d.tags : []).includes(tagFilter as AllergenTag));
         }
+
+        if (proteinFilter && proteinFilter !== 'all') {
+          data = data.filter((d: MenuItem) => matchesProtein(d, proteinFilter));
+        }
         
         data.sort((a: MenuItem, b: MenuItem) => (a.sort_order || 0) - (b.sort_order || 0));
 
         if (!data || data.length === 0) {
           const msg = tagFilter
             ? `No encontramos platos con la etiqueta "${tagFilter}" en este momento.`
-            : `Próximamente novedades en ${category}s.`;
+            : (proteinFilter !== 'all' ? `No hay platos en la sección seleccionada.` : `Próximamente novedades en ${category}s.`);
           menuGrid!.innerHTML = `<div class="loading-state">${msg}</div>`;
           menuGrid!.style.opacity = '1';
           return;
@@ -533,14 +564,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    const proteinBtns = document.querySelectorAll('.protein-btn');
+    proteinBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        proteinBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentProtein = btn.getAttribute('data-protein') || 'all';
+        loadMenu(currentCategory, currentTag, currentProtein);
+      });
+    });
+
     filterBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         filterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const cat = btn.getAttribute('data-category') || 'comida';
-        // Clear tag filter when clicking category buttons
-        loadMenu(cat, null);
-        // Optional: Update URL to remove tag? Not strictly necessary for SPA feel unless we want persistent state.
+        currentCategory = cat;
+        currentTag = null;
+        currentProtein = 'all';
+        proteinBtns.forEach(b => {
+          if (b.getAttribute('data-protein') === 'all') b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        loadMenu(currentCategory, null, currentProtein);
       });
     });
 
@@ -548,6 +594,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const initialCat = urlParams.get('cat') || 'comida';
     const initialTag = urlParams.get('tag'); // Get tag from URL
+    currentCategory = initialCat;
+    currentTag = initialTag;
 
     // Set active button (only if no tag, or default to cat)
     filterBtns.forEach(btn => {
@@ -559,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial load
-    loadMenu(initialCat, initialTag);
+    loadMenu(initialCat, initialTag, currentProtein);
   }
 
   // --- GALLERY LOGIC (Grid Layout & Firestore gallery_items SSOT) ---
