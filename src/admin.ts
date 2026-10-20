@@ -1014,7 +1014,18 @@ if (typeof window !== 'undefined') {
                     status: 500,
                     detail: fetchError.message
                 });
-                galleryAdminGrid.innerHTML = '<div style="grid-column: 1/-1; color:red;">Error al cargar galería.</div>';
+                const isPermission = fetchError.message.toLowerCase().includes('permission');
+                galleryAdminGrid.innerHTML = isPermission
+                    ? `<div style="grid-column: 1/-1; background: rgba(197, 168, 128, 0.08); border: 1px solid var(--lux-gold-champagne); border-radius: 8px; padding: 24px; color: #f5f2eb; font-family: var(--font-sans);">
+                        <h4 style="color: var(--lux-gold-champagne); margin-top: 0; font-size: 1.1rem; letter-spacing: 0.05em;">Regla de Seguridad de Firestore Pendiente</h4>
+                        <p style="color: #ccc; font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px;">
+                            Firebase bloqueó la lectura de la colección <code>gallery_items</code> por falta de permisos en las Reglas de Firestore.
+                        </p>
+                        <p style="color: #999; font-size: 0.85rem; line-height: 1.5; margin: 0;">
+                            Copia y pega la regla en <strong>Firebase Console &gt; Firestore Database &gt; Reglas</strong> para activar la gestión completa de la galería.
+                        </p>
+                    </div>`
+                    : '<div style="grid-column: 1/-1; color:red;">Error al cargar galería.</div>';
                 return;
             }
 
