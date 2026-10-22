@@ -130,10 +130,17 @@ export function renderMenuItemHtml(item: MenuItem): string {
   const escapedName = cleanName.replace(/"/g, '&quot;');
   const escapedDesc = (item.description || '').replace(/"/g, '&quot;');
 
+  const thumbUrl = item.image_url ? normalizeCloudinaryUrl(item.image_url, 240) : '';
+
   const photoTrigger = item.image_url
     ? `<button class="dish-photo-trigger" data-img="${item.image_url}" data-name="${escapedName}" data-desc="${escapedDesc}" aria-label="Ver fotografía del plato">
-        <span><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px; margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>FOTOGRAFÍA</span>
-        <span class="trigger-line"></span>
+        <div class="dish-thumb-box">
+          <img src="${thumbUrl}" alt="${escapedName}" class="dish-thumb-img" loading="lazy" decoding="async">
+          <span class="dish-thumb-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </span>
+        </div>
+        <span class="dish-photo-label"><span>FOTOGRAFÍA</span><span class="trigger-line"></span></span>
       </button>`
     : '';
 
@@ -521,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const sub in groups) {
           html += `<div class="menu-subcategory-title">${sub}</div>`;
-          html += groups[sub].map(renderMenuItemHtml).join('');
+          html += `<div class="subcategory-grid">${groups[sub].map(renderMenuItemHtml).join('')}</div>`;
         }
         menuGrid!.innerHTML = html;
         menuGrid!.style.opacity = '1';
